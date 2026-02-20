@@ -91,21 +91,21 @@ if (BOT_TOKEN) {
     let lbText = '';
     if (leaderboard.length > 0) {
       const medals = ['🥇', '🥈', '🥉'];
-      lbText = '\n\n🏆 *TOP AGENTS:*\n';
+      lbText = '\n\n🏆 *ЛУЧШИЕ АГЕНТЫ:*\n';
       lbText += leaderboard.map((e, i) => {
         const medal = medals[i] || `${i + 1}.`;
         const mins = Math.floor(e.time / 60);
         const secs = Math.floor(e.time % 60);
         const timeStr = e.time > 0 ? ` — ${mins}:${secs.toString().padStart(2, '0')}` : '';
-        return `${medal} *${escapeMarkdown(e.username)}* — ${e.score} pts${timeStr}`;
+        return `${medal} *${escapeMarkdown(e.username)}* — ${e.score} очк${timeStr}`;
       }).join('\n');
     } else {
-      lbText = '\n\n_No scores yet. Be the first agent to complete the mission!_';
+      lbText = '\n\n_Пока нет результатов. Стань первым агентом, выполнившим миссию!_';
     }
 
-    const text = `👋 Hello, *${escapeMarkdown(firstName)}*!\n\n` +
-      `🎮 *Operation: Shadow Island*\n` +
-      `Infiltrate the island, fight guards, hack terminals, and defeat the villain!\n` +
+    const text = `👋 Привет, *${escapeMarkdown(firstName)}*!\n\n` +
+      `🎮 *Операция: Тёмный Остров*\n` +
+      `Проникни на остров, сражайся с охраной, взломай терминалы и победи злодея!\n` +
       lbText;
 
     // Inline button to launch the game
@@ -119,7 +119,7 @@ if (BOT_TOKEN) {
     // Add "Play" button if APP_URL is set
     if (APP_URL) {
       opts.reply_markup.inline_keyboard.push([
-        { text: '🕹 PLAY NOW', web_app: { url: APP_URL } },
+        { text: '🕹 ИГРАТЬ', web_app: { url: APP_URL } },
       ]);
     }
 
