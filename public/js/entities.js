@@ -1,0 +1,867 @@
+// ─── Game Entities ───────────────────────────────────────────────────────────
+
+// ── Player ─────────────────────────────────────────────────────────────────
+class Player {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 28;
+    this.h = 28;
+    this.speed = 120;
+    this.hp = 5;
+    this.maxHp = 5;
+    this.alive = true;
+    this.invulnTime = 0;   // invulnerability frames
+    this.attackCooldown = 0;
+    this.attackRange = 36;
+    this.attackDamage = 1;
+    this.facingX = 0;
+    this.facingY = 1;
+    this.score = 0;
+    this.flashTimer = 0;
+  }
+
+  takeDamage(amount) {
+    if (this.invulnTime > 0) return;
+    this.hp -= amount;
+    this.invulnTime = 0.8;
+    this.flashTimer = 0.8;
+    Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.alive = false;
+      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ff3333', 20);
+    }
+  }
+
+  update(dt, game) {
+    if (!this.alive) return;
+
+    this.invulnTime = Math.max(0, this.invulnTime - dt);
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+    this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+
+    const dir = Input.getDirection();
+    if (dir.dx !== 0 || dir.dy !== 0) {
+      this.facingX = dir.dx;
+      this.facingY = dir.dy;
+    }
+
+    let nx = this.x + dir.dx * this.speed * dt;
+    let ny = this.y + dir.dy * this.speed * dt;
+
+    // Keep in bounds
+    nx = Math.max(0, Math.min(game.mapWidth - this.w, nx));
+    ny = Math.max(0, Math.min(game.mapHeight - this.h, ny));
+
+    // Wall collision
+    if (!game.collidesWithWalls(nx, this.y, this.w, this.h)) this.x = nx;
+    if (!game.collidesWithWalls(this.x, ny, this.w, this.h)) this.y = ny;
+
+    // Attack
+    if (Input.consumeAttack() && this.attackCooldown <= 0) {
+      this.attackCooldown = 0.3;
+      this.performAttack(game);
+    }
+  }
+
+  performAttack(game) {
+    const cx = this.x + this.w / 2 + this.facingX * this.attackRange;
+    const cy = this.y + this.h / 2 + this.facingY * this.attackRange;
+
+    Particles.sparks(cx, cy);
+
+    // Check hits on enemies
+    for (const e of game.enemies) {
+      if (!e.alive) continue;
+      const ex = e.x + (e.w || 28) / 2;
+      const ey = e.y + (e.h || 28) / 2;
+      const dist = Math.hypot(cx - ex, cy - ey);
+      if (dist < this.attackRange + 10) {
+        e.takeDamage(this.attackDamage, game);
+      }
+    }
+
+    // Check hits on boss
+    if (game.boss && game.boss.alive) {
+      const bx = game.boss.x + (game.boss.w || 40) / 2;
+      const by = game.boss.y + (game.boss.h || 40) / 2;
+      const dist = Math.hypot(cx - bx, cy - by);
+      if (dist < this.attackRange + 20) {
+        game.boss.takeDamage(this.attackDamage, game);
+      }
+    }
+
+    // Check hits on destructibles (servers)
+    if (game.destructibles) {
+      for (const d of game.destructibles) {
+        if (d.destroyed) continue;
+        const dx = d.x + d.w / 2;
+        const dy = d.y + d.h / 2;
+        const dist = Math.hypot(cx - dx, cy - dy);
+        if (dist < this.attackRange + 16) {
+          d.takeDamage(this.attackDamage, game);
+        }
+      }
+    }
+  }
+
+  draw(ctx) {
+    if (!this.alive) return;
+
+    // Invulnerability blink
+    if (this.invulnTime > 0 && Math.floor(this.invulnTime * 10) % 2) return;
+
+    ctx.drawImage(Sprites.player(), this.x - 2, this.y - 2);
+  }
+}
+
+// ── Guard (patrols, has flashlight cone) ───────────────────────────────────
+class Guard {
+  constructor(x, y, patrolPoints) {
+    this.x = x;
+    this.y = y;
+    this.w = 28;
+    this.h = 28;
+    this.speed = 45;
+    this.hp = 2;
+    this.alive = true;
+    this.patrolPoints = patrolPoints || [{ x, y }];
+    this.patrolIndex = 0;
+    this.waitTimer = 0;
+    this.facing = Math.PI / 2; // direction angle
+    this.alertMode = false;
+    this.alertTimer = 0;
+    this.flashlightRange = 90;
+    this.flashlightAngle = Math.PI / 4; // cone half-angle
+    this.flashTimer = 0;
+  }
+
+  takeDamage(amount, game) {
+    this.hp -= amount;
+    this.flashTimer = 0.1;
+    Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+    if (this.hp <= 0) {
+      this.alive = false;
+      game.player.score += 100;
+      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#556655', 15);
+    }
+  }
+
+  // Check if player is in flashlight cone
+  canSeePlayer(player) {
+    const dx = (player.x + player.w / 2) - (this.x + this.w / 2);
+    const dy = (player.y + player.h / 2) - (this.y + this.h / 2);
+    const dist = Math.hypot(dx, dy);
+    if (dist > this.flashlightRange) return false;
+
+    const angleToPlayer = Math.atan2(dy, dx);
+    let angleDiff = angleToPlayer - this.facing;
+    // Normalize
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+    return Math.abs(angleDiff) < this.flashlightAngle;
+  }
+
+  update(dt, game) {
+    if (!this.alive) return;
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+
+    const player = game.player;
+
+    // Check if player spotted
+    if (this.canSeePlayer(player) && player.alive && player.invulnTime <= 0) {
+      if (!this.alertMode) {
+        this.alertMode = true;
+        this.alertTimer = 3;
+        Particles.alert(this.x + this.w / 2, this.y);
+      }
+    }
+
+    if (this.alertMode) {
+      this.alertTimer -= dt;
+      if (this.alertTimer <= 0) this.alertMode = false;
+
+      // Chase player
+      const dx = player.x - this.x;
+      const dy = player.y - this.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 5) {
+        this.x += (dx / dist) * this.speed * 1.5 * dt;
+        this.y += (dy / dist) * this.speed * 1.5 * dt;
+        this.facing = Math.atan2(dy, dx);
+      }
+
+      // Damage on contact
+      if (dist < 24 && player.invulnTime <= 0) {
+        player.takeDamage(1);
+      }
+    } else {
+      // Patrol
+      const target = this.patrolPoints[this.patrolIndex];
+      const dx = target.x - this.x;
+      const dy = target.y - this.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < 4) {
+        this.waitTimer += dt;
+        // Rotate while waiting
+        this.facing += dt * 0.8;
+        if (this.waitTimer > 1.5) {
+          this.waitTimer = 0;
+          this.patrolIndex = (this.patrolIndex + 1) % this.patrolPoints.length;
+        }
+      } else {
+        this.x += (dx / dist) * this.speed * dt;
+        this.y += (dy / dist) * this.speed * dt;
+        this.facing = Math.atan2(dy, dx);
+      }
+    }
+  }
+
+  draw(ctx) {
+    if (!this.alive) return;
+
+    // Flashlight cone
+    const cx = this.x + this.w / 2;
+    const cy = this.y + this.h / 2;
+
+    ctx.save();
+    ctx.globalAlpha = this.alertMode ? 0.25 : 0.12;
+    ctx.fillStyle = this.alertMode ? '#ff3333' : '#ffff66';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, this.flashlightRange,
+      this.facing - this.flashlightAngle,
+      this.facing + this.flashlightAngle);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Guard sprite
+    if (this.flashTimer > 0 && Math.floor(this.flashTimer * 20) % 2) {
+      ctx.globalAlpha = 0.5;
+    }
+    ctx.drawImage(Sprites.guard(), this.x - 2, this.y - 2);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── Drone (mini boss — flies, shoots) ──────────────────────────────────────
+class Drone {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 36;
+    this.h = 36;
+    this.hp = 8;
+    this.maxHp = 8;
+    this.alive = true;
+    this.speed = 60;
+    this.shootTimer = 0;
+    this.moveAngle = 0;
+    this.moveTimer = 0;
+    this.flashTimer = 0;
+  }
+
+  takeDamage(amount, game) {
+    this.hp -= amount;
+    this.flashTimer = 0.1;
+    Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+    if (this.hp <= 0) {
+      this.alive = false;
+      game.player.score += 500;
+      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#88aacc', 25);
+    }
+  }
+
+  update(dt, game) {
+    if (!this.alive) return;
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+
+    // Random movement pattern
+    this.moveTimer -= dt;
+    if (this.moveTimer <= 0) {
+      this.moveAngle = Math.random() * Math.PI * 2;
+      this.moveTimer = 1 + Math.random();
+    }
+
+    this.x += Math.cos(this.moveAngle) * this.speed * dt;
+    this.y += Math.sin(this.moveAngle) * this.speed * dt;
+
+    // Keep in bounds
+    this.x = Math.max(20, Math.min(game.mapWidth - this.w - 20, this.x));
+    this.y = Math.max(20, Math.min(game.mapHeight / 2, this.y));
+
+    // Shoot at player
+    this.shootTimer -= dt;
+    if (this.shootTimer <= 0 && game.player.alive) {
+      this.shootTimer = 1.2;
+      const px = game.player.x + game.player.w / 2;
+      const py = game.player.y + game.player.h / 2;
+      const dx = px - (this.x + this.w / 2);
+      const dy = py - (this.y + this.h / 2);
+      const dist = Math.hypot(dx, dy);
+      game.projectiles.push(new Projectile(
+        this.x + this.w / 2, this.y + this.h / 2,
+        (dx / dist) * 130, (dy / dist) * 130, true
+      ));
+    }
+  }
+
+  draw(ctx) {
+    if (!this.alive) return;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(this.x + this.w / 2, this.y + this.h + 4, 16, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hover bob
+    const bob = Math.sin(Date.now() / 200) * 3;
+
+    if (this.flashTimer > 0) ctx.globalAlpha = 0.5;
+    ctx.drawImage(Sprites.drone(), this.x - 2, this.y - 2 + bob);
+    ctx.globalAlpha = 1;
+
+    // HP bar
+    const barW = 36;
+    const barH = 4;
+    const bx = this.x + (this.w - barW) / 2;
+    const by = this.y - 8 + bob;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(bx, by, barW, barH);
+    ctx.fillStyle = '#ff3333';
+    ctx.fillRect(bx, by, barW * (this.hp / this.maxHp), barH);
+  }
+}
+
+// ── Security Boss (dash + stun) ────────────────────────────────────────────
+class SecurityBoss {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 44;
+    this.h = 44;
+    this.hp = 15;
+    this.maxHp = 15;
+    this.alive = true;
+    this.speed = 50;
+    this.state = 'idle'; // idle, dash, stun, cooldown
+    this.stateTimer = 1;
+    this.dashTarget = { x: 0, y: 0 };
+    this.flashTimer = 0;
+  }
+
+  takeDamage(amount, game) {
+    this.hp -= amount;
+    this.flashTimer = 0.1;
+    Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+    if (this.hp <= 0) {
+      this.alive = false;
+      game.player.score += 1000;
+      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#888899', 30);
+    }
+  }
+
+  update(dt, game) {
+    if (!this.alive) return;
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+
+    const player = game.player;
+    this.stateTimer -= dt;
+
+    switch (this.state) {
+      case 'idle':
+        // Walk toward player slowly
+        if (player.alive) {
+          const dx = player.x - this.x;
+          const dy = player.y - this.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 10) {
+            this.x += (dx / dist) * this.speed * dt;
+            this.y += (dy / dist) * this.speed * dt;
+          }
+        }
+        if (this.stateTimer <= 0) {
+          this.state = 'dash';
+          this.stateTimer = 0.4;
+          this.dashTarget = { x: player.x, y: player.y };
+          Particles.alert(this.x + this.w / 2, this.y);
+        }
+        break;
+
+      case 'dash':
+        // Fast dash toward target
+        const dx2 = this.dashTarget.x - this.x;
+        const dy2 = this.dashTarget.y - this.y;
+        const dist2 = Math.hypot(dx2, dy2);
+        if (dist2 > 5) {
+          const dashSpeed = 300;
+          this.x += (dx2 / dist2) * dashSpeed * dt;
+          this.y += (dy2 / dist2) * dashSpeed * dt;
+        }
+        // Damage on contact
+        if (player.alive) {
+          const cdist = Math.hypot(
+            (player.x + player.w / 2) - (this.x + this.w / 2),
+            (player.y + player.h / 2) - (this.y + this.h / 2)
+          );
+          if (cdist < 30) player.takeDamage(1);
+        }
+        if (this.stateTimer <= 0) {
+          this.state = 'stun';
+          this.stateTimer = 1.5;
+          // Stun wave
+          Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#aaaaff', 8);
+          // Damage nearby
+          if (player.alive) {
+            const sd = Math.hypot(
+              (player.x + player.w / 2) - (this.x + this.w / 2),
+              (player.y + player.h / 2) - (this.y + this.h / 2)
+            );
+            if (sd < 60) player.takeDamage(1);
+          }
+        }
+        break;
+
+      case 'stun':
+        // Vulnerable — stands still
+        if (this.stateTimer <= 0) {
+          this.state = 'cooldown';
+          this.stateTimer = 2;
+        }
+        break;
+
+      case 'cooldown':
+        if (player.alive) {
+          const dx3 = player.x - this.x;
+          const dy3 = player.y - this.y;
+          const dist3 = Math.hypot(dx3, dy3);
+          if (dist3 > 80) {
+            this.x += (dx3 / dist3) * this.speed * 0.5 * dt;
+            this.y += (dy3 / dist3) * this.speed * 0.5 * dt;
+          }
+        }
+        if (this.stateTimer <= 0) {
+          this.state = 'idle';
+          this.stateTimer = 2;
+        }
+        break;
+    }
+
+    // Keep in bounds
+    this.x = Math.max(0, Math.min(game.mapWidth - this.w, this.x));
+    this.y = Math.max(0, Math.min(game.mapHeight - this.h, this.y));
+  }
+
+  draw(ctx) {
+    if (!this.alive) return;
+
+    // Stun indicator
+    if (this.state === 'stun') {
+      ctx.strokeStyle = '#aaaaff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 30, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Dash trail
+    if (this.state === 'dash') {
+      ctx.fillStyle = 'rgba(255, 100, 100, 0.3)';
+      ctx.fillRect(this.x - 4, this.y - 4, this.w + 8, this.h + 8);
+    }
+
+    if (this.flashTimer > 0) ctx.globalAlpha = 0.5;
+    ctx.drawImage(Sprites.securityBoss(), this.x - 2, this.y - 2);
+    ctx.globalAlpha = 1;
+
+    // HP bar
+    const barW = 44;
+    const barH = 5;
+    const bx = this.x;
+    const by = this.y - 10;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(bx, by, barW, barH);
+    ctx.fillStyle = '#ff6600';
+    ctx.fillRect(bx, by, barW * (this.hp / this.maxHp), barH);
+  }
+}
+
+// ── Final Villain (3 phases) ───────────────────────────────────────────────
+class FinalBoss {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 52;
+    this.h = 52;
+    this.hp = 25;
+    this.maxHp = 25;
+    this.alive = true;
+    this.phase = 1;
+    this.speed = 40;
+    this.attackTimer = 0;
+    this.teleportTimer = 0;
+    this.moveAngle = 0;
+    this.moveTimer = 0;
+    this.flashTimer = 0;
+    this.enraged = false;
+  }
+
+  takeDamage(amount, game) {
+    this.hp -= amount;
+    this.flashTimer = 0.1;
+    Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+
+    // Phase transitions
+    const hpPercent = this.hp / this.maxHp;
+    if (hpPercent <= 0.3 && this.phase < 3) {
+      this.phase = 3;
+      this.enraged = true;
+      this.speed = 80;
+      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ff0000', 30);
+    } else if (hpPercent <= 0.6 && this.phase < 2) {
+      this.phase = 2;
+      this.speed = 55;
+      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ff6600', 20);
+    }
+
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.alive = false;
+      game.player.score += 3000;
+      // Big explosion
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          Particles.explode(
+            this.x + this.w / 2 + (Math.random() - 0.5) * 40,
+            this.y + this.h / 2 + (Math.random() - 0.5) * 40,
+            ['#ff0000', '#ff6600', '#ffcc00'][i % 3], 20
+          );
+        }, i * 150);
+      }
+    }
+  }
+
+  update(dt, game) {
+    if (!this.alive) return;
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+
+    const player = game.player;
+    if (!player.alive) return;
+
+    this.attackTimer -= dt;
+    this.teleportTimer -= dt;
+
+    switch (this.phase) {
+      case 1: // Throws projectiles
+        this.moveTimer -= dt;
+        if (this.moveTimer <= 0) {
+          this.moveAngle = Math.random() * Math.PI * 2;
+          this.moveTimer = 1.5 + Math.random();
+        }
+        this.x += Math.cos(this.moveAngle) * this.speed * dt;
+        this.y += Math.sin(this.moveAngle) * this.speed * dt;
+
+        if (this.attackTimer <= 0) {
+          this.attackTimer = 1.0;
+          this.throwProjectile(game);
+        }
+        break;
+
+      case 2: // Teleports randomly
+        if (this.teleportTimer <= 0) {
+          this.teleportTimer = 2.0;
+          // Teleport
+          Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#aa00ff', 15);
+          this.x = 40 + Math.random() * (game.mapWidth - 80);
+          this.y = 40 + Math.random() * (game.mapHeight - 120);
+          Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#aa00ff', 15);
+        }
+        if (this.attackTimer <= 0) {
+          this.attackTimer = 0.8;
+          this.throwProjectile(game);
+          // Throw extra in phase 2
+          setTimeout(() => { if (this.alive) this.throwProjectile(game); }, 200);
+        }
+        break;
+
+      case 3: // Enrage — fast, many projectiles
+        {
+          const dx = player.x - this.x;
+          const dy = player.y - this.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 10) {
+            this.x += (dx / dist) * this.speed * dt;
+            this.y += (dy / dist) * this.speed * dt;
+          }
+          // Contact damage
+          if (dist < 30) player.takeDamage(1);
+
+          if (this.attackTimer <= 0) {
+            this.attackTimer = 0.5;
+            // Spray in 4 directions
+            for (let a = 0; a < 4; a++) {
+              const angle = (Math.PI / 2) * a + Date.now() / 1000;
+              game.projectiles.push(new Projectile(
+                this.x + this.w / 2, this.y + this.h / 2,
+                Math.cos(angle) * 110, Math.sin(angle) * 110, true
+              ));
+            }
+          }
+
+          if (this.teleportTimer <= 0) {
+            this.teleportTimer = 3.0;
+            Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ff0000', 15);
+            this.x = 40 + Math.random() * (game.mapWidth - 80);
+            this.y = 40 + Math.random() * (game.mapHeight - 120);
+          }
+        }
+        break;
+    }
+
+    // Keep in bounds
+    this.x = Math.max(10, Math.min(game.mapWidth - this.w - 10, this.x));
+    this.y = Math.max(10, Math.min(game.mapHeight - this.h - 10, this.y));
+  }
+
+  throwProjectile(game) {
+    const px = game.player.x + game.player.w / 2;
+    const py = game.player.y + game.player.h / 2;
+    const dx = px - (this.x + this.w / 2);
+    const dy = py - (this.y + this.h / 2);
+    const dist = Math.hypot(dx, dy);
+    const speed = this.enraged ? 150 : 110;
+    game.projectiles.push(new Projectile(
+      this.x + this.w / 2, this.y + this.h / 2,
+      (dx / dist) * speed, (dy / dist) * speed, true
+    ));
+  }
+
+  draw(ctx) {
+    if (!this.alive) return;
+
+    // Enrage aura
+    if (this.enraged) {
+      ctx.fillStyle = `rgba(255, 0, 0, ${0.15 + Math.sin(Date.now() / 100) * 0.1})`;
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 40, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Phase 2 teleport shimmer
+    if (this.phase === 2) {
+      ctx.fillStyle = `rgba(170, 0, 255, ${0.1 + Math.sin(Date.now() / 150) * 0.08})`;
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 35, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (this.flashTimer > 0) ctx.globalAlpha = 0.5;
+    ctx.drawImage(Sprites.villain(), this.x - 2, this.y - 2);
+    ctx.globalAlpha = 1;
+
+    // Boss HP bar (wide, on top)
+    const barW = 200;
+    const barH = 8;
+    const bx = (ctx.canvas.width / 2 - barW / 2);
+    const by = 30;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset to screen coords
+    ctx.fillStyle = '#222';
+    ctx.fillRect(bx - 1, by - 1, barW + 2, barH + 2);
+    ctx.fillStyle = '#441111';
+    ctx.fillRect(bx, by, barW, barH);
+    const hpColor = this.enraged ? '#ff0000' : (this.phase === 2 ? '#ff6600' : '#cc0000');
+    ctx.fillStyle = hpColor;
+    ctx.fillRect(bx, by, barW * (this.hp / this.maxHp), barH);
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('DR. VORTEX', bx + barW / 2, by - 3);
+    ctx.restore();
+  }
+}
+
+// ── Projectile ─────────────────────────────────────────────────────────────
+class Projectile {
+  constructor(x, y, vx, vy, hostile) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.hostile = hostile; // damages player if true
+    this.alive = true;
+    this.w = 6;
+    this.h = 6;
+  }
+
+  update(dt, game) {
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+
+    // Out of bounds
+    if (this.x < -20 || this.x > game.mapWidth + 20 ||
+        this.y < -20 || this.y > game.mapHeight + 20) {
+      this.alive = false;
+      return;
+    }
+
+    // Hit player
+    if (this.hostile && game.player.alive) {
+      const dx = (game.player.x + game.player.w / 2) - this.x;
+      const dy = (game.player.y + game.player.h / 2) - this.y;
+      if (Math.hypot(dx, dy) < 16) {
+        game.player.takeDamage(1);
+        this.alive = false;
+        Particles.sparks(this.x, this.y);
+      }
+    }
+  }
+
+  draw(ctx) {
+    if (!this.alive) return;
+    const sprite = this.hostile ? Sprites.enemyProjectile() : Sprites.projectile();
+    ctx.drawImage(sprite, this.x - 4, this.y - 4);
+  }
+}
+
+// ── Destructible Server ────────────────────────────────────────────────────
+class DestructibleServer {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 32;
+    this.h = 48;
+    this.hp = 5;
+    this.maxHp = 5;
+    this.destroyed = false;
+    this.flashTimer = 0;
+  }
+
+  takeDamage(amount, game) {
+    if (this.destroyed) return;
+    this.hp -= amount;
+    this.flashTimer = 0.1;
+    Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+    if (this.hp <= 0) {
+      this.destroyed = true;
+      game.player.score += 300;
+      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#33ff88', 20);
+    }
+  }
+
+  draw(ctx) {
+    if (this.destroyed) {
+      // Destroyed remains
+      ctx.fillStyle = '#222';
+      ctx.fillRect(this.x + 4, this.y + 20, 24, 28);
+      ctx.fillStyle = '#333';
+      ctx.fillRect(this.x + 8, this.y + 24, 16, 20);
+      return;
+    }
+
+    if (this.flashTimer > 0) ctx.globalAlpha = 0.5;
+    ctx.drawImage(Sprites.server(), this.x, this.y);
+    ctx.globalAlpha = 1;
+
+    // HP bar
+    const barW = 28;
+    const barH = 3;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(this.x + 2, this.y - 6, barW, barH);
+    ctx.fillStyle = '#00ff88';
+    ctx.fillRect(this.x + 2, this.y - 6, barW * (this.hp / this.maxHp), barH);
+  }
+}
+
+// ── Laser beam obstacle ────────────────────────────────────────────────────
+class LaserBeam {
+  constructor(x1, y1, x2, y2, toggleSpeed) {
+    this.x1 = x1;
+    this.y1 = y1;
+    this.x2 = x2;
+    this.y2 = y2;
+    this.active = true;
+    this.timer = 0;
+    this.toggleSpeed = toggleSpeed || 2; // seconds per toggle
+  }
+
+  update(dt, game) {
+    this.timer += dt;
+    if (this.timer >= this.toggleSpeed) {
+      this.timer = 0;
+      this.active = !this.active;
+    }
+
+    if (this.active && game.player.alive) {
+      // Simple line-to-rect collision
+      if (this.intersectsPlayer(game.player)) {
+        game.player.takeDamage(1);
+      }
+    }
+  }
+
+  intersectsPlayer(p) {
+    // Simplified: check distance from player center to laser line
+    const pcx = p.x + p.w / 2;
+    const pcy = p.y + p.h / 2;
+    const dx = this.x2 - this.x1;
+    const dy = this.y2 - this.y1;
+    const len = Math.hypot(dx, dy);
+    if (len === 0) return false;
+
+    const t = Math.max(0, Math.min(1,
+      ((pcx - this.x1) * dx + (pcy - this.y1) * dy) / (len * len)));
+    const closestX = this.x1 + t * dx;
+    const closestY = this.y1 + t * dy;
+    const dist = Math.hypot(pcx - closestX, pcy - closestY);
+    return dist < 14;
+  }
+
+  draw(ctx) {
+    if (!this.active) {
+      // Dim inactive laser
+      ctx.strokeStyle = 'rgba(255, 0, 0, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 8]);
+      ctx.beginPath();
+      ctx.moveTo(this.x1, this.y1);
+      ctx.lineTo(this.x2, this.y2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      return;
+    }
+
+    // Active laser
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = '#ff0000';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(this.x1, this.y1);
+    ctx.lineTo(this.x2, this.y2);
+    ctx.stroke();
+
+    // Glow
+    ctx.strokeStyle = 'rgba(255, 100, 100, 0.4)';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(this.x1, this.y1);
+    ctx.lineTo(this.x2, this.y2);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1;
+
+    // Emitter nodes
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(this.x1 - 3, this.y1 - 3, 6, 6);
+    ctx.fillRect(this.x2 - 3, this.y2 - 3, 6, 6);
+  }
+}
