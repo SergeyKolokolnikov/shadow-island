@@ -1,10 +1,12 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
+const TelegramBot = require('node-telegram-bot-api');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
+const APP_URL = process.env.APP_URL || ''; // e.g. https://shadow-island-production.up.railway.app
 
 // In-memory score storage (MVP — replace with DB for production)
 const scores = new Map();
@@ -72,6 +74,65 @@ app.get('/leaderboard', (req, res) => {
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// ─── Telegram Bot (/start command with leaderboard) ──────────────────────────
+if (BOT_TOKEN) {
+  const bot = new TelegramBot(BOT_TOKEN, { polling: true });
+
+  bot.onText(/\/start/, async (msg) => {
+    const chatId = msg.chat.id;
+    const firstName = msg.from.first_name || 'Agent';
+
+    // Build leaderboard text
+    const leaderboard = [...scores.values()]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    let lbText = '';
+    if (leaderboard.length > 0) {
+      const medals = ['🥇', '🥈', '🥉'];
+      lbText = '\n\n🏆 *TOP AGENTS:*\n';
+      lbText += leaderboard.map((e, i) => {
+        const medal = medals[i] || `${i + 1}.`;
+        const mins = Math.floor(e.time / 60);
+        const secs = Math.floor(e.time % 60);
+        const timeStr = e.time > 0 ? ` — ${mins}:${secs.toString().padStart(2, '0')}` : '';
+        return `${medal} *${escapeMarkdown(e.username)}* — ${e.score} pts${timeStr}`;
+      }).join('\n');
+    } else {
+      lbText = '\n\n_No scores yet. Be the first agent to complete the mission!_';
+    }
+
+    const text = `👋 Hello, *${escapeMarkdown(firstName)}*!\n\n` +
+      `🎮 *Operation: Shadow Island*\n` +
+      `Infiltrate the island, fight guards, hack terminals, and defeat the villain!\n` +
+      lbText;
+
+    // Inline button to launch the game
+    const opts = {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [],
+      },
+    };
+
+    // Add "Play" button if APP_URL is set
+    if (APP_URL) {
+      opts.reply_markup.inline_keyboard.push([
+        { text: '🕹 PLAY NOW', web_app: { url: APP_URL } },
+      ]);
+    }
+
+    bot.sendMessage(chatId, text, opts);
+  });
+
+  // Escape markdown special chars
+  function escapeMarkdown(str) {
+    return String(str).replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
+  }
+
+  console.log('Telegram bot started (polling mode)');
+}
 
 app.listen(PORT, () => {
   console.log(`Shadow Island server running on port ${PORT}`);

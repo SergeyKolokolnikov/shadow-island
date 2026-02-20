@@ -180,35 +180,37 @@ body {
 
 #mobile-controls.hidden { display: none; }
 
-#dpad {
-  position: relative;
-  width: 130px;
-  height: 130px;
+#joystick-zone {
+  width: 140px;
+  height: 140px;
   pointer-events: auto;
-}
-
-.dpad-btn {
-  position: absolute;
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  color: #fff;
-  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 
-.dpad-btn:active { background: rgba(255, 102, 0, 0.5); }
+#joystick-base {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-.dpad-btn[data-dir="up"]    { top: 0; left: 43px; }
-.dpad-btn[data-dir="down"]  { bottom: 0; left: 43px; }
-.dpad-btn[data-dir="left"]  { top: 43px; left: 0; }
-.dpad-btn[data-dir="right"] { top: 43px; right: 0; }
+#joystick-thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255, 102, 0, 0.5);
+  border: 2px solid rgba(255, 102, 0, 0.7);
+  position: absolute;
+  transition: none;
+  pointer-events: none;
+}
 
 .action-btn {
   width: 70px;
