@@ -15,6 +15,7 @@ class Game {
     this.boss = null;
     this.lasers = [];
     this.destructibles = [];
+    this.pickups = [];
 
     // Level
     this.currentLevelIndex = 0;
@@ -100,6 +101,9 @@ class Game {
 
     // Destructibles (server room)
     this.destructibles = level.createServers ? level.createServers() : [];
+
+    // Pickups
+    this.pickups = [];
 
     // Countdown
     this.countdown = level.countdown || 0;
@@ -202,6 +206,11 @@ class Game {
       // Just for drawing, updates handled by player attack
     }
 
+    // Health pickups
+    for (const p of this.pickups) {
+      p.update(dt);
+    }
+
     // Countdown
     if (this.countdown > 0) {
       this.countdown -= dt;
@@ -289,6 +298,11 @@ class Game {
     // Destructibles
     for (const d of this.destructibles) {
       d.draw(ctx);
+    }
+
+    // Health pickups
+    for (const p of this.pickups) {
+      p.draw(ctx);
     }
 
     // Enemies

@@ -19,6 +19,9 @@ class Player {
     this.facingY = 1;
     this.score = 0;
     this.flashTimer = 0;
+    this.kickTimer = 0;       // visual: how long to show kick leg
+    this.kickDirX = 0;        // kick direction for visual
+    this.kickDirY = 0;
   }
 
   takeDamage(amount) {
@@ -34,12 +37,17 @@ class Player {
     }
   }
 
+  heal(amount) {
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+  }
+
   update(dt, game) {
     if (!this.alive) return;
 
     this.invulnTime = Math.max(0, this.invulnTime - dt);
     this.flashTimer = Math.max(0, this.flashTimer - dt);
     this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+    this.kickTimer = Math.max(0, this.kickTimer - dt);
 
     const dir = Input.getDirection();
     if (dir.dx !== 0 || dir.dy !== 0) {
@@ -58,16 +66,62 @@ class Player {
     if (!game.collidesWithWalls(nx, this.y, this.w, this.h)) this.x = nx;
     if (!game.collidesWithWalls(this.x, ny, this.w, this.h)) this.y = ny;
 
-    // Attack
+    // Keyboard attack (Space)
     if (Input.consumeAttack() && this.attackCooldown <= 0) {
       this.attackCooldown = 0.3;
-      this.performAttack(game);
+      this.performKick(game, this.facingX, this.facingY);
+    }
+
+    // Kick joystick — continuous kicking while held in a direction
+    if (Input.isKicking() && this.attackCooldown <= 0) {
+      const kick = Input.getKickDirection();
+      this.attackCooldown = 0.3;
+      this.performKick(game, kick.dx, kick.dy);
+    }
+
+    // Kick joystick — fire on release
+    if (Input.consumeKick() && this.attackCooldown <= 0) {
+      const kick = Input.getKickDirection();
+      if (kick.dx !== 0 || kick.dy !== 0) {
+        this.attackCooldown = 0.3;
+        this.performKick(game, kick.dx, kick.dy);
+      }
+    }
+
+    // Pick up health items
+    if (game.pickups) {
+      for (let i = game.pickups.length - 1; i >= 0; i--) {
+        const p = game.pickups[i];
+        const dist = Math.hypot(
+          (this.x + this.w / 2) - (p.x + p.w / 2),
+          (this.y + this.h / 2) - (p.y + p.h / 2)
+        );
+        if (dist < 22) {
+          this.heal(p.healAmount);
+          Particles.sparks(p.x + p.w / 2, p.y + p.h / 2);
+          game.pickups.splice(i, 1);
+        }
+      }
     }
   }
 
-  performAttack(game) {
-    const cx = this.x + this.w / 2 + this.facingX * this.attackRange;
-    const cy = this.y + this.h / 2 + this.facingY * this.attackRange;
+  performKick(game, dirX, dirY) {
+    // Normalize kick direction
+    const len = Math.hypot(dirX, dirY);
+    if (len > 0) {
+      dirX /= len;
+      dirY /= len;
+    } else {
+      dirX = this.facingX;
+      dirY = this.facingY;
+    }
+
+    this.kickDirX = dirX;
+    this.kickDirY = dirY;
+    this.kickTimer = 0.15;
+
+    const cx = this.x + this.w / 2 + dirX * this.attackRange;
+    const cy = this.y + this.h / 2 + dirY * this.attackRange;
 
     Particles.sparks(cx, cy);
 
@@ -96,9 +150,9 @@ class Player {
     if (game.destructibles) {
       for (const d of game.destructibles) {
         if (d.destroyed) continue;
-        const dx = d.x + d.w / 2;
-        const dy = d.y + d.h / 2;
-        const dist = Math.hypot(cx - dx, cy - dy);
+        const dx2 = d.x + d.w / 2;
+        const dy2 = d.y + d.h / 2;
+        const dist = Math.hypot(cx - dx2, cy - dy2);
         if (dist < this.attackRange + 16) {
           d.takeDamage(this.attackDamage, game);
         }
@@ -113,6 +167,80 @@ class Player {
     if (this.invulnTime > 0 && Math.floor(this.invulnTime * 10) % 2) return;
 
     ctx.drawImage(Sprites.player(), this.x - 2, this.y - 2);
+
+    // Draw kick leg visual
+    if (this.kickTimer > 0) {
+      const pcx = this.x + this.w / 2;
+      const pcy = this.y + this.h / 2;
+      const legLen = 18 + (0.15 - this.kickTimer) * 80; // extend out
+      const legX = pcx + this.kickDirX * legLen;
+      const legY = pcy + this.kickDirY * legLen;
+
+      // Leg line
+      ctx.strokeStyle = '#ddbb88';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pcx + this.kickDirX * 10, pcy + this.kickDirY * 10);
+      ctx.lineTo(legX, legY);
+      ctx.stroke();
+
+      // Boot/foot
+      ctx.fillStyle = '#222';
+      ctx.beginPath();
+      ctx.arc(legX, legY, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Impact flash
+      if (this.kickTimer > 0.1) {
+        ctx.fillStyle = 'rgba(255, 200, 50, 0.6)';
+        ctx.beginPath();
+        ctx.arc(legX, legY, 10, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.lineWidth = 1;
+      ctx.lineCap = 'butt';
+    }
+  }
+}
+
+// ── Health Pickup (dropped by guards) ──────────────────────────────────────
+class HealthPickup {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 14;
+    this.h = 14;
+    this.healAmount = 1;
+    this.timer = 0; // for bob animation
+  }
+
+  update(dt) {
+    this.timer += dt;
+  }
+
+  draw(ctx) {
+    const bob = Math.sin(this.timer * 4) * 2;
+    const cx = this.x + this.w / 2;
+    const cy = this.y + this.h / 2 + bob;
+
+    // Glow
+    ctx.fillStyle = 'rgba(0, 255, 100, 0.15)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Red cross background
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Red cross
+    ctx.fillStyle = '#ff2244';
+    ctx.fillRect(cx - 1.5, cy - 5, 3, 10);
+    ctx.fillRect(cx - 5, cy - 1.5, 10, 3);
   }
 }
 
@@ -145,6 +273,11 @@ class Guard {
       this.alive = false;
       game.player.score += 100;
       Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#556655', 15);
+      // 40% chance to drop health pickup
+      if (Math.random() < 0.4) {
+        if (!game.pickups) game.pickups = [];
+        game.pickups.push(new HealthPickup(this.x + 4, this.y + 4));
+      }
     }
   }
 
@@ -683,7 +816,7 @@ class FinalBoss {
     ctx.fillStyle = '#fff';
     ctx.font = '10px Courier New';
     ctx.textAlign = 'center';
-    ctx.fillText('DR. VORTEX', bx + barW / 2, by - 3);
+    ctx.fillText('THE ISLAND KEEPER', bx + barW / 2, by - 3);
     ctx.restore();
   }
 }

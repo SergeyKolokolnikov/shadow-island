@@ -1,13 +1,19 @@
-// ─── Input Handler (Keyboard + Virtual Joystick) ─────────────────────────────
+// ─── Input Handler (Keyboard + Dual Virtual Joysticks) ───────────────────────
 const Input = {
   keys: {},
   attack: false,
   _attackConsumed: false,
 
-  // Joystick state
+  // Movement joystick state
   _joystickActive: false,
   _joystickDx: 0,
   _joystickDy: 0,
+
+  // Kick joystick state
+  _kickActive: false,
+  _kickDx: 0,
+  _kickDy: 0,
+  _kickFired: false,
 
   init() {
     // ── Keyboard ───────────────────────────────────────────────────────────
@@ -24,99 +30,106 @@ const Input = {
       this.keys[e.key.toLowerCase()] = false;
     });
 
-    // ── Virtual Joystick ───────────────────────────────────────────────────
-    const base = document.getElementById('joystick-base');
-    const thumb = document.getElementById('joystick-thumb');
+    // ── Setup both joysticks ───────────────────────────────────────────────
+    this._setupJoystick('joystick-base', 'joystick-thumb', 'move');
+    this._setupJoystick('kick-base', 'kick-thumb', 'kick');
+  },
 
-    if (base && thumb) {
-      const maxDist = 37; // max thumb offset from center (px)
-      let baseRect = null;
-      let centerX = 0, centerY = 0;
-      let touchId = null;
+  // Generic joystick setup (reused for both move and kick)
+  _setupJoystick(baseId, thumbId, type) {
+    const base = document.getElementById(baseId);
+    const thumb = document.getElementById(thumbId);
+    if (!base || !thumb) return;
 
-      const updateThumb = (tx, ty) => {
-        let dx = tx - centerX;
-        let dy = ty - centerY;
-        const dist = Math.hypot(dx, dy);
+    const maxDist = type === 'move' ? 37 : 33;
+    let centerX = 0, centerY = 0;
+    let touchId = null;
 
-        if (dist > maxDist) {
-          dx = (dx / dist) * maxDist;
-          dy = (dy / dist) * maxDist;
-        }
+    const updateThumb = (tx, ty) => {
+      let dx = tx - centerX;
+      let dy = ty - centerY;
+      const dist = Math.hypot(dx, dy);
 
-        thumb.style.transform = `translate(${dx}px, ${dy}px)`;
+      if (dist > maxDist) {
+        dx = (dx / dist) * maxDist;
+        dy = (dy / dist) * maxDist;
+      }
 
-        // Normalize to -1..1
-        this._joystickDx = dx / maxDist;
-        this._joystickDy = dy / maxDist;
+      thumb.style.transform = `translate(${dx}px, ${dy}px)`;
 
-        // Dead zone
-        if (Math.abs(this._joystickDx) < 0.15) this._joystickDx = 0;
-        if (Math.abs(this._joystickDy) < 0.15) this._joystickDy = 0;
-      };
+      const ndx = dx / maxDist;
+      const ndy = dy / maxDist;
 
-      const resetThumb = () => {
-        thumb.style.transform = 'translate(0px, 0px)';
+      if (type === 'move') {
+        this._joystickDx = Math.abs(ndx) < 0.15 ? 0 : ndx;
+        this._joystickDy = Math.abs(ndy) < 0.15 ? 0 : ndy;
+      } else {
+        this._kickDx = Math.abs(ndx) < 0.2 ? 0 : ndx;
+        this._kickDy = Math.abs(ndy) < 0.2 ? 0 : ndy;
+      }
+    };
+
+    const resetThumb = () => {
+      thumb.style.transform = 'translate(0px, 0px)';
+      if (type === 'move') {
         this._joystickActive = false;
         this._joystickDx = 0;
         this._joystickDy = 0;
-        touchId = null;
-      };
+      } else {
+        // Fire kick on release if joystick was deflected
+        if (this._kickActive && (this._kickDx !== 0 || this._kickDy !== 0)) {
+          this._kickFired = true;
+        }
+        this._kickActive = false;
+        this._kickDx = 0;
+        this._kickDy = 0;
+      }
+      touchId = null;
+    };
 
-      base.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (touchId !== null) return; // already tracking a touch
-        const touch = e.changedTouches[0];
-        touchId = touch.identifier;
-        baseRect = base.getBoundingClientRect();
-        centerX = baseRect.left + baseRect.width / 2;
-        centerY = baseRect.top + baseRect.height / 2;
+    base.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (touchId !== null) return;
+      const touch = e.changedTouches[0];
+      touchId = touch.identifier;
+      const rect = base.getBoundingClientRect();
+      centerX = rect.left + rect.width / 2;
+      centerY = rect.top + rect.height / 2;
+
+      if (type === 'move') {
         this._joystickActive = true;
-        updateThumb(touch.clientX, touch.clientY);
-      });
+      } else {
+        this._kickActive = true;
+        this._kickFired = false;
+      }
+      updateThumb(touch.clientX, touch.clientY);
+    });
 
-      window.addEventListener('touchmove', (e) => {
-        if (touchId === null) return;
-        for (const touch of e.changedTouches) {
-          if (touch.identifier === touchId) {
-            e.preventDefault();
-            updateThumb(touch.clientX, touch.clientY);
-            break;
-          }
+    window.addEventListener('touchmove', (e) => {
+      if (touchId === null) return;
+      for (const touch of e.changedTouches) {
+        if (touch.identifier === touchId) {
+          e.preventDefault();
+          updateThumb(touch.clientX, touch.clientY);
+          break;
         }
-      }, { passive: false });
+      }
+    }, { passive: false });
 
-      window.addEventListener('touchend', (e) => {
-        for (const touch of e.changedTouches) {
-          if (touch.identifier === touchId) {
-            resetThumb();
-            break;
-          }
+    const endHandler = (e) => {
+      for (const touch of e.changedTouches) {
+        if (touch.identifier === touchId) {
+          resetThumb();
+          break;
         }
-      });
+      }
+    };
 
-      window.addEventListener('touchcancel', (e) => {
-        for (const touch of e.changedTouches) {
-          if (touch.identifier === touchId) {
-            resetThumb();
-            break;
-          }
-        }
-      });
-    }
-
-    // ── Mobile attack button ───────────────────────────────────────────────
-    const atkBtn = document.getElementById('btn-attack');
-    if (atkBtn) {
-      atkBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        this.attack = true;
-        this._attackConsumed = false;
-      });
-    }
+    window.addEventListener('touchend', endHandler);
+    window.addEventListener('touchcancel', endHandler);
   },
 
-  // Returns true once per press
+  // Returns true once per press (keyboard space)
   consumeAttack() {
     if (this.attack && !this._attackConsumed) {
       this._attackConsumed = true;
@@ -124,6 +137,24 @@ const Input = {
       return true;
     }
     return false;
+  },
+
+  // Returns kick direction once when kick joystick is released
+  consumeKick() {
+    if (this._kickFired) {
+      this._kickFired = false;
+      return true;
+    }
+    return false;
+  },
+
+  // Get current kick joystick direction (for continuous kicking while held)
+  getKickDirection() {
+    return { dx: this._kickDx, dy: this._kickDy };
+  },
+
+  isKicking() {
+    return this._kickActive && (this._kickDx !== 0 || this._kickDy !== 0);
   },
 
   // Movement vector (keyboard + joystick combined)

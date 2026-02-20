@@ -114,138 +114,197 @@ const Sprites = {
     });
   },
 
-  // ── Security boss sprite ─────────────────────────────────────────────────
+  // ── Security boss sprite (blonde billionaire — Trump caricature) ─────────
   securityBoss() {
     return this.create(48, 48, (ctx) => {
       const B = '#111';
-      const S = '#222233'; // black suit
-      const H = '#ccaa77';
-      const G = '#888899'; // glasses
-      const T = '#cc0000'; // tie
-      ctx.fillStyle = S;
-      ctx.fillRect(8, 20, 32, 24);
-      ctx.fillStyle = H;
-      ctx.fillRect(14, 4, 20, 18);
-      ctx.fillStyle = G;
-      ctx.fillRect(16, 10, 7, 4);
-      ctx.fillRect(25, 10, 7, 4);
-      ctx.fillStyle = B;
-      ctx.fillRect(23, 10, 2, 4);
-      ctx.fillStyle = T;
-      ctx.fillRect(22, 22, 4, 16);
-      ctx.fillStyle = H;
-      ctx.fillRect(4, 26, 6, 12);
-      ctx.fillRect(38, 26, 6, 12);
-      ctx.fillStyle = S;
+      const W = '#ffffff';
+      const SUIT = '#1a1a6a'; // dark blue suit
+      const TIE = '#cc0000'; // red power tie
+      const SKIN = '#f0c090'; // orange-tinted skin
+      const HAIR = '#f5d442'; // blonde
+      const HAIR_HI = '#ffe066';
+
+      // Legs
+      ctx.fillStyle = '#111133';
       ctx.fillRect(14, 40, 8, 8);
       ctx.fillRect(26, 40, 8, 8);
+
+      // Body (suit)
+      ctx.fillStyle = SUIT;
+      ctx.fillRect(8, 20, 32, 22);
+      // Lapels
+      ctx.fillStyle = '#222255';
+      ctx.fillRect(10, 20, 5, 12);
+      ctx.fillRect(33, 20, 5, 12);
+      // White shirt
+      ctx.fillStyle = W;
+      ctx.beginPath();
+      ctx.moveTo(20, 20);
+      ctx.lineTo(28, 20);
+      ctx.lineTo(24, 30);
+      ctx.closePath();
+      ctx.fill();
+      // Red tie
+      ctx.fillStyle = TIE;
+      ctx.fillRect(22, 22, 4, 14);
+      ctx.fillRect(21, 36, 6, 3);
+
+      // Arms
+      ctx.fillStyle = SUIT;
+      ctx.fillRect(3, 22, 7, 14);
+      ctx.fillRect(38, 22, 7, 14);
+      // Hands
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(3, 34, 7, 5);
+      ctx.fillRect(38, 34, 7, 5);
+
+      // Head
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(12, 3, 24, 18);
+      ctx.fillRect(14, 2, 20, 20);
+
+      // Blonde hair — combover
+      ctx.fillStyle = HAIR;
+      ctx.fillRect(10, 0, 28, 6);
+      ctx.fillRect(8, 1, 5, 5);
+      ctx.fillRect(35, 1, 5, 4);
+      ctx.fillRect(36, 0, 8, 3);
+      ctx.fillStyle = HAIR_HI;
+      ctx.fillRect(12, 0, 18, 3);
+
+      // Eyes (squinting)
+      ctx.fillStyle = W;
+      ctx.fillRect(15, 9, 6, 3);
+      ctx.fillRect(27, 9, 6, 3);
+      ctx.fillStyle = '#3366cc';
+      ctx.fillRect(18, 9, 3, 3);
+      ctx.fillRect(30, 9, 3, 3);
       ctx.fillStyle = B;
-      ctx.fillRect(14, 2, 20, 4);
+      ctx.fillRect(19, 10, 2, 2);
+      ctx.fillRect(31, 10, 2, 2);
+      // Eyebrows
+      ctx.fillStyle = '#ccaa22';
+      ctx.fillRect(14, 7, 8, 2);
+      ctx.fillRect(26, 7, 8, 2);
+
+      // Mouth
+      ctx.fillStyle = '#cc6644';
+      ctx.fillRect(18, 16, 12, 2);
+      ctx.fillStyle = W;
+      ctx.fillRect(20, 16, 8, 2);
     });
   },
 
-  // ── Final villain sprite (blonde billionaire caricature) ─────────────────
+  // ── Final villain sprite (island keeper — Epstein caricature) ────────────
   villain() {
     return this.create(56, 56, (ctx) => {
       const B = '#111';
       const W = '#ffffff';
       const G = '#ddaa00'; // gold
-      const SUIT = '#1a1a6a'; // dark blue suit
-      const TIE = '#cc0000'; // red power tie
-      const SKIN = '#f0c090'; // orange-ish skin
-      const HAIR = '#f5d442'; // blonde hair
-      const HAIR_HI = '#ffe066'; // hair highlight
+      const SKIN = '#d4a574'; // tanned skin
+      const HAIR = '#1a1a1a'; // dark hair
+      const SHIRT = '#4488aa'; // open collar shirt
+      const PANTS = '#ccbb88'; // khaki
 
-      // Shadow / base
+      // Shadow
       ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.beginPath();
       ctx.ellipse(28, 54, 22, 5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Legs
-      ctx.fillStyle = '#111133';
-      ctx.fillRect(16, 46, 10, 10);
-      ctx.fillRect(30, 46, 10, 10);
+      // Legs (khaki)
+      ctx.fillStyle = PANTS;
+      ctx.fillRect(16, 44, 10, 10);
+      ctx.fillRect(30, 44, 10, 10);
       // Shoes
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = '#443322';
       ctx.fillRect(14, 52, 12, 4);
       ctx.fillRect(30, 52, 12, 4);
 
-      // Body (suit)
-      ctx.fillStyle = SUIT;
-      ctx.fillRect(10, 20, 36, 28);
-      // Suit lapels
-      ctx.fillStyle = '#222255';
-      ctx.fillRect(12, 20, 6, 14);
-      ctx.fillRect(38, 20, 6, 14);
-      // White shirt triangle
-      ctx.fillStyle = W;
+      // Body (casual open-collar shirt)
+      ctx.fillStyle = SHIRT;
+      ctx.fillRect(10, 20, 36, 26);
+      // Collar
+      ctx.fillStyle = '#55aacc';
       ctx.beginPath();
-      ctx.moveTo(24, 20);
-      ctx.lineTo(32, 20);
-      ctx.lineTo(28, 34);
+      ctx.moveTo(22, 20);
+      ctx.lineTo(28, 28);
+      ctx.lineTo(34, 20);
       ctx.closePath();
       ctx.fill();
-      // Red power tie
-      ctx.fillStyle = TIE;
-      ctx.fillRect(26, 22, 4, 18);
-      ctx.fillRect(25, 40, 6, 3);
+      // Chest exposed in V
+      ctx.fillStyle = SKIN;
+      ctx.beginPath();
+      ctx.moveTo(23, 20);
+      ctx.lineTo(28, 27);
+      ctx.lineTo(33, 20);
+      ctx.closePath();
+      ctx.fill();
 
       // Arms
-      ctx.fillStyle = SUIT;
-      ctx.fillRect(4, 22, 8, 18);
-      ctx.fillRect(44, 22, 8, 18);
-      // Hands
+      ctx.fillStyle = SHIRT;
+      ctx.fillRect(4, 22, 8, 14);
+      ctx.fillRect(44, 22, 8, 14);
+      // Forearms (exposed skin — short sleeves)
       ctx.fillStyle = SKIN;
-      ctx.fillRect(4, 38, 8, 6);
-      ctx.fillRect(44, 38, 8, 6);
+      ctx.fillRect(4, 34, 8, 8);
+      ctx.fillRect(44, 34, 8, 8);
 
-      // Head (wider, rounder)
+      // Head (egg-shaped, longer face)
       ctx.fillStyle = SKIN;
-      ctx.fillRect(14, 2, 28, 20);
-      ctx.fillRect(16, 1, 24, 22);
+      ctx.fillRect(15, 1, 26, 21);
+      ctx.fillRect(17, 0, 22, 23);
 
-      // Blonde hair — big swoopy combover
+      // Dark hair — receding, short on sides
       ctx.fillStyle = HAIR;
-      ctx.fillRect(12, 0, 32, 7);
-      ctx.fillRect(10, 1, 6, 6);
-      ctx.fillRect(40, 1, 6, 5);
-      // Hair swoop to the right
-      ctx.fillRect(38, 0, 10, 4);
-      ctx.fillRect(44, 1, 6, 6);
-      // Hair highlight
-      ctx.fillStyle = HAIR_HI;
-      ctx.fillRect(14, 0, 20, 3);
-      ctx.fillRect(40, 0, 6, 2);
-
-      // Eyes (squinting)
-      ctx.fillStyle = W;
-      ctx.fillRect(18, 9, 7, 4);
-      ctx.fillRect(31, 9, 7, 4);
-      ctx.fillStyle = '#3366cc';
-      ctx.fillRect(21, 10, 3, 3);
-      ctx.fillRect(34, 10, 3, 3);
-      ctx.fillStyle = B;
-      ctx.fillRect(22, 10, 2, 2);
-      ctx.fillRect(35, 10, 2, 2);
-      // Eyebrows (furrowed, blonde)
-      ctx.fillStyle = '#ccaa22';
-      ctx.fillRect(17, 7, 9, 2);
-      ctx.fillRect(30, 7, 9, 2);
-
-      // Mouth (pursed, expressive)
-      ctx.fillStyle = '#cc6644';
-      ctx.fillRect(22, 17, 12, 3);
+      ctx.fillRect(17, -1, 22, 5);
+      ctx.fillRect(15, 1, 4, 8);
+      ctx.fillRect(37, 1, 4, 8);
+      // Slight receding at temples
       ctx.fillStyle = SKIN;
-      ctx.fillRect(24, 17, 8, 1);
-      // Teeth
-      ctx.fillStyle = W;
-      ctx.fillRect(24, 18, 8, 2);
+      ctx.fillRect(18, 0, 3, 2);
+      ctx.fillRect(35, 0, 3, 2);
 
-      // Gold details — cufflinks
-      ctx.fillStyle = G;
-      ctx.fillRect(5, 36, 3, 3);
-      ctx.fillRect(48, 36, 3, 3);
+      // Ears
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(13, 8, 3, 6);
+      ctx.fillRect(40, 8, 3, 6);
+
+      // Eyes (heavy-lidded)
+      ctx.fillStyle = W;
+      ctx.fillRect(20, 9, 6, 4);
+      ctx.fillRect(32, 9, 6, 4);
+      ctx.fillStyle = '#443322'; // dark brown
+      ctx.fillRect(23, 10, 3, 3);
+      ctx.fillRect(35, 10, 3, 3);
+      ctx.fillStyle = B;
+      ctx.fillRect(24, 10, 2, 2);
+      ctx.fillRect(36, 10, 2, 2);
+      // Heavy eyebrows
+      ctx.fillStyle = HAIR;
+      ctx.fillRect(19, 7, 8, 2);
+      ctx.fillRect(31, 7, 8, 2);
+      // Bags under eyes
+      ctx.fillStyle = '#b8956a';
+      ctx.fillRect(20, 13, 6, 1);
+      ctx.fillRect(32, 13, 6, 1);
+
+      // Nose (prominent)
+      ctx.fillStyle = '#c49060';
+      ctx.fillRect(27, 11, 4, 5);
+      ctx.fillRect(26, 15, 6, 2);
+
+      // Mouth (thin smirk)
+      ctx.fillStyle = '#994444';
+      ctx.fillRect(23, 18, 12, 2);
+      // Slight smirk curl
+      ctx.fillStyle = '#aa5555';
+      ctx.fillRect(34, 17, 2, 1);
+
+      // Chin
+      ctx.fillStyle = '#c49a6a';
+      ctx.fillRect(24, 20, 10, 2);
     });
   },
 
