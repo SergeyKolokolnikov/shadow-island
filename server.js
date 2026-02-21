@@ -103,6 +103,34 @@ app.get('/leaderboard', async (req, res) => {
   }
 });
 
+// ─── GET /health — check Google Sheets connection status ─────────────────────
+app.get('/health', async (req, res) => {
+  const gsConfigured = !!(process.env.GOOGLE_SHEETS_ID && process.env.GOOGLE_CREDS_BASE64);
+  let gsConnected = false;
+  let gsError = null;
+
+  if (gsConfigured) {
+    try {
+      const lb = await googleGetLeaderboard(1);
+      gsConnected = lb !== null;
+    } catch (err) {
+      gsError = err.message;
+    }
+  }
+
+  res.json({
+    status: 'ok',
+    googleSheets: {
+      configured: gsConfigured,
+      connected: gsConnected,
+      sheetsId: process.env.GOOGLE_SHEETS_ID ? process.env.GOOGLE_SHEETS_ID.substring(0, 8) + '...' : 'NOT SET',
+      credsSet: !!process.env.GOOGLE_CREDS_BASE64,
+      error: gsError,
+    },
+    inMemoryScores: scores.size,
+  });
+});
+
 // ─── Fallback to index.html ──────────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -192,5 +220,10 @@ app.listen(PORT, () => {
   console.log(`Shadow Island server running on port ${PORT}`);
   if (!BOT_TOKEN) {
     console.log('WARNING: BOT_TOKEN not set — Telegram validation disabled (dev mode)');
+  }
+  if (!process.env.GOOGLE_SHEETS_ID || !process.env.GOOGLE_CREDS_BASE64) {
+    console.log('WARNING: GOOGLE_SHEETS_ID or GOOGLE_CREDS_BASE64 not set — using in-memory leaderboard');
+  } else {
+    console.log('Google Sheets configured — sheet ID:', process.env.GOOGLE_SHEETS_ID.substring(0, 12) + '...');
   }
 });
