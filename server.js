@@ -110,13 +110,24 @@ app.get('/health', async (req, res) => {
   // Direct connection test with full error details
   const healthResult = await googleHealthCheck();
 
+  // Parse service account email from creds for debugging
+  let serviceEmail = 'unknown';
+  try {
+    if (process.env.GOOGLE_CREDS_BASE64) {
+      const c = JSON.parse(Buffer.from(process.env.GOOGLE_CREDS_BASE64, 'base64').toString());
+      serviceEmail = c.client_email || 'not found in creds';
+    }
+  } catch (e) { serviceEmail = 'parse error: ' + e.message; }
+
   res.json({
     status: 'ok',
     googleSheets: {
       configured: gsConfigured,
       ...healthResult,
-      sheetsId: process.env.GOOGLE_SHEETS_ID ? process.env.GOOGLE_SHEETS_ID.substring(0, 12) + '...' : 'NOT SET',
+      sheetsIdFull: process.env.GOOGLE_SHEETS_ID || 'NOT SET',
+      sheetsIdLength: (process.env.GOOGLE_SHEETS_ID || '').length,
       credsLength: process.env.GOOGLE_CREDS_BASE64 ? process.env.GOOGLE_CREDS_BASE64.length : 0,
+      serviceEmail,
     },
     inMemoryScores: scores.size,
   });
