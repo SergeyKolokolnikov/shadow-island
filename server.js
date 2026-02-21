@@ -174,9 +174,7 @@ if (BOT_TOKEN) {
       // Find max score for bar chart
       const maxScore = leaderboard[0].score || 1;
 
-      lbText = '\n\n━━━━━━━━━━━━━━━━━━━━\n';
-      lbText += '🏆 *ЛУЧШИЕ АГЕНТЫ*\n';
-      lbText += '━━━━━━━━━━━━━━━━━━━━\n\n';
+      lbText = '🏆 *ЛУЧШИЕ АГЕНТЫ*\n';
 
       lbText += leaderboard.map((e, i) => {
         const medal = i < 3 ? medals[i] : (nums[i - 3] || `${i + 1}.`);
@@ -195,7 +193,7 @@ if (BOT_TOKEN) {
         const bar = barFull.repeat(filled) + barEmpty.repeat(barLen - filled);
 
         // Username — plain text without links (no web preview)
-        const name = e.username || 'Agent';
+        const name = `@${e.username}` || 'Agent';
 
         // Top 3 get special formatting
         if (i < 3) {
@@ -204,21 +202,15 @@ if (BOT_TOKEN) {
         return `${medal} ${escapeMarkdown(name)}\n      ${bar}  ${e.score} очк${timeStr}`;
       }).join('\n\n');
 
-      lbText += '\n\n━━━━━━━━━━━━━━━━━━━━';
-      lbText += `\n📊 Всего агентов: *${leaderboard.length}*`;
+      lbText += `\n Всего агентов: *${leaderboard.length}*`;
     } else {
-      lbText = '\n\n━━━━━━━━━━━━━━━━━━━━\n';
       lbText += '🏆 *ЛУЧШИЕ АГЕНТЫ*\n';
-      lbText += '━━━━━━━━━━━━━━━━━━━━\n\n';
       lbText += '🕳 _Пока нет результатов. Стань первым агентом, выполнившим миссию!_';
     }
 
     const text = `👋 Привет, *${escapeMarkdown(firstName)}*!\n\n` +
-      `🎮 *Операция: Тёмный Остров*\n\n` +
-      `🏝 Проникни на остров\n` +
-      `⚔️ Сражайся с охраной\n` +
-      `💻 Взломай терминалы\n` +
-      `🦹 Победи злодея!\n` +
+      `*Операция: Тёмный Остров*\n\n` +
+      `Проникни на остров, сражайся с охраной, взломай терминалы и победи злодея!\n` +
       lbText;
 
     // Inline button to launch the game

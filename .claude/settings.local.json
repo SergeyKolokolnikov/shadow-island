@@ -35,7 +35,10 @@
       "WebFetch(domain:shadow-island-production.up.railway.app)",
       "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland remote -v)",
       "WebFetch(domain:shadow-island.up.railway.app)",
-      "WebFetch(domain:web-production-b9822.up.railway.app)"
+      "WebFetch(domain:web-production-b9822.up.railway.app)",
+      "WebFetch(domain:tgstat.ru)",
+      "WebFetch(domain:telega.io)",
+      "Bash(git push:*)"
     ]
   }
 }
