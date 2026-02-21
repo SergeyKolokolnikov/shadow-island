@@ -17,6 +17,7 @@ const TG = {
           id: u.id,
           username: u.username || u.first_name || 'Agent',
           firstName: u.first_name || '',
+          isPremium: u.is_premium || false,
         };
       }
     }
@@ -27,7 +28,27 @@ const TG = {
         id: 'dev_' + Math.floor(Math.random() * 99999),
         username: 'DevAgent',
         firstName: 'Dev',
+        isPremium: false,
       };
+    }
+
+    // Register user in Google Sheets (fire and forget)
+    this.registerUser();
+  },
+
+  // Register user in Google Sheets when they open the game
+  async registerUser() {
+    try {
+      await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          initData: this.initData,
+          user: this.user,
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to register user:', e);
     }
   },
 

@@ -2,13 +2,14 @@ const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
+const { googleAddUser, googleUpdateScore, googleGetLeaderboard } = require('./google-sheets');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const APP_URL = process.env.APP_URL || ''; // e.g. https://shadow-island-production.up.railway.app
 
-// In-memory score storage (MVP — replace with DB for production)
+// In-memory score storage (fallback if Google Sheets not configured)
 const scores = new Map();
 
 app.use(express.json());
@@ -34,8 +35,27 @@ function validateTelegramData(initData) {
   return computedHash === hash;
 }
 
+// ─── POST /register — register user in Google Sheets on game start ──────────
+app.post('/register', async (req, res) => {
+  const { initData, user } = req.body;
+
+  if (!user || !user.id) {
+    return res.status(400).json({ error: 'Missing user data' });
+  }
+
+  // Validate Telegram data if provided
+  if (initData && !validateTelegramData(initData)) {
+    return res.status(403).json({ error: 'Invalid Telegram data' });
+  }
+
+  // Save to Google Sheets (async, non-blocking for the game)
+  googleAddUser(user).catch(err => console.error('[Register] GSheets error:', err));
+
+  res.json({ success: true });
+});
+
 // ─── POST /score — save player score ─────────────────────────────────────────
-app.post('/score', (req, res) => {
+app.post('/score', async (req, res) => {
   const { initData, userId, username, score, time } = req.body;
 
   if (!userId || score === undefined) {
@@ -47,6 +67,7 @@ app.post('/score', (req, res) => {
     return res.status(403).json({ error: 'Invalid Telegram data' });
   }
 
+  // Save to in-memory (fallback / fast access)
   const existing = scores.get(String(userId));
   if (!existing || score > existing.score) {
     scores.set(String(userId), {
@@ -58,16 +79,28 @@ app.post('/score', (req, res) => {
     });
   }
 
+  // Save to Google Sheets (update score columns)
+  googleUpdateScore(userId, Number(score), Number(time) || 0)
+    .catch(err => console.error('[Score] GSheets error:', err));
+
   res.json({ success: true, highScore: scores.get(String(userId)).score });
 });
 
 // ─── GET /leaderboard — top 50 players ───────────────────────────────────────
-app.get('/leaderboard', (req, res) => {
-  const leaderboard = [...scores.values()]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 50);
+app.get('/leaderboard', async (req, res) => {
+  // Try Google Sheets first
+  const gsLeaderboard = await googleGetLeaderboard(50);
 
-  res.json({ leaderboard });
+  if (gsLeaderboard !== null) {
+    // Google Sheets is configured and returned data
+    res.json({ leaderboard: gsLeaderboard });
+  } else {
+    // Fallback to in-memory
+    const leaderboard = [...scores.values()]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 50);
+    res.json({ leaderboard });
+  }
 });
 
 // ─── Fallback to index.html ──────────────────────────────────────────────────
@@ -83,10 +116,22 @@ if (BOT_TOKEN) {
     const chatId = msg.chat.id;
     const firstName = msg.from.first_name || 'Agent';
 
-    // Build leaderboard text
-    const leaderboard = [...scores.values()]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+    // Register user from Telegram bot too
+    googleAddUser({
+      id: msg.from.id,
+      username: msg.from.username || '',
+      firstName: `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim(),
+      isPremium: msg.from.is_premium || false,
+    }).catch(err => console.error('[Bot Register] GSheets error:', err));
+
+    // Build leaderboard text — prefer Google Sheets
+    let leaderboard = await googleGetLeaderboard(10);
+    if (leaderboard === null) {
+      // Fallback to in-memory
+      leaderboard = [...scores.values()]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+    }
 
     let lbText = '';
     if (leaderboard.length > 0) {
@@ -94,9 +139,14 @@ if (BOT_TOKEN) {
       lbText = '\n\n🏆 *ЛУЧШИЕ АГЕНТЫ:*\n';
       lbText += leaderboard.map((e, i) => {
         const medal = medals[i] || `${i + 1}.`;
-        const mins = Math.floor(e.time / 60);
-        const secs = Math.floor(e.time % 60);
-        const timeStr = e.time > 0 ? ` — ${mins}:${secs.toString().padStart(2, '0')}` : '';
+        let timeStr = '';
+        if (typeof e.time === 'string' && e.time.length > 0) {
+          timeStr = ` — ${e.time}`;
+        } else if (typeof e.time === 'number' && e.time > 0) {
+          const mins = Math.floor(e.time / 60);
+          const secs = Math.floor(e.time % 60);
+          timeStr = ` — ${mins}:${secs.toString().padStart(2, '0')}`;
+        }
         return `${medal} *${escapeMarkdown(e.username)}* — ${e.score} очк${timeStr}`;
       }).join('\n');
     } else {
