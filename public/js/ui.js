@@ -28,11 +28,11 @@ const UI = {
 
     const cw = ctx.canvas.width;
 
-    // HP hearts
+    // HP hearts (offset down to avoid Telegram close button)
     const heartSprite = Sprites.heart();
     for (let i = 0; i < game.player.maxHp; i++) {
       const hx = 10 + i * 16;
-      const hy = 8;
+      const hy = 44;
       if (i < game.player.hp) {
         ctx.globalAlpha = 1;
         ctx.drawImage(heartSprite, hx, hy);
@@ -47,12 +47,12 @@ const UI = {
     ctx.fillStyle = '#aaa';
     ctx.font = '10px Courier New';
     ctx.textAlign = 'right';
-    ctx.fillText(game.levelName, cw - 10, 16);
+    ctx.fillText(game.levelName, cw - 10, 50);
 
     // Score
     ctx.fillStyle = '#00ff88';
     ctx.textAlign = 'left';
-    ctx.fillText('SCORE: ' + game.player.score, 10, 34);
+    ctx.fillText('SCORE: ' + game.player.score, 10, 68);
 
     // Timer (if applicable)
     if (game.countdown > 0) {
@@ -62,7 +62,7 @@ const UI = {
       ctx.fillStyle = game.countdown < 30 ? '#ff3333' : '#ffcc00';
       ctx.font = 'bold 16px Courier New';
       ctx.textAlign = 'center';
-      ctx.fillText(timeStr, cw / 2, 18);
+      ctx.fillText(timeStr, cw / 2, 54);
     }
 
     // Total elapsed time
@@ -71,7 +71,7 @@ const UI = {
     ctx.fillStyle = '#666';
     ctx.font = '10px Courier New';
     ctx.textAlign = 'right';
-    ctx.fillText(`${totalMins}:${totalSecs.toString().padStart(2, '0')}`, cw - 10, 30);
+    ctx.fillText(`${totalMins}:${totalSecs.toString().padStart(2, '0')}`, cw - 10, 64);
 
     ctx.restore();
   },

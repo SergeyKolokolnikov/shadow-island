@@ -396,20 +396,56 @@ class Drone {
     this.moveAngle = 0;
     this.moveTimer = 0;
     this.flashTimer = 0;
+    this.dying = false;
+    this.deathAnim = 0;
   }
 
   takeDamage(amount, game) {
+    if (this.dying) return;
     this.hp -= amount;
     this.flashTimer = 0.1;
     Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
     if (this.hp <= 0) {
-      this.alive = false;
+      this.hp = 0;
+      this.dying = true;
+      this.deathAnim = 2.0;
       game.player.score += 500;
-      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#88aacc', 25);
+      game.projectiles = [];
     }
   }
 
   update(dt, game) {
+    // Death animation: drone spins and crashes
+    if (this.dying) {
+      this.deathAnim -= dt;
+      const cx = this.x + this.w / 2;
+      const cy = this.y + this.h / 2;
+      // Spiral down with smoke
+      this.x += Math.sin(this.deathAnim * 8) * 2;
+      this.y += dt * 60;
+      if (Math.random() < 0.4) {
+        Particles.list.push({
+          x: cx + (Math.random() - 0.5) * 20,
+          y: cy,
+          vx: (Math.random() - 0.5) * 30,
+          vy: -20 - Math.random() * 20,
+          life: 0.5 + Math.random() * 0.3,
+          maxLife: 0.8,
+          size: 3 + Math.random() * 3,
+          color: ['#555', '#666', '#ff4400'][Math.floor(Math.random() * 3)],
+        });
+      }
+      if (this.deathAnim <= 0) {
+        this.alive = false;
+        this.dying = false;
+        // Final ground explosion
+        Particles.explode(cx, cy, '#ff6600', 25);
+        Particles.explode(cx, cy, '#88aacc', 20);
+        Particles.explode(cx, cy, '#ffcc00', 15);
+      }
+      return;
+    }
+
     if (!this.alive) return;
     this.flashTimer = Math.max(0, this.flashTimer - dt);
 
@@ -444,7 +480,7 @@ class Drone {
   }
 
   draw(ctx) {
-    if (!this.alive) return;
+    if (!this.alive && !this.dying) return;
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -452,11 +488,23 @@ class Drone {
     ctx.ellipse(this.x + this.w / 2, this.y + this.h + 4, 16, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Hover bob
-    const bob = Math.sin(Date.now() / 200) * 3;
+    // Hover bob (or spinning if dying)
+    const bob = this.dying ? 0 : Math.sin(Date.now() / 200) * 3;
 
-    if (this.flashTimer > 0) ctx.globalAlpha = 0.5;
-    ctx.drawImage(Sprites.drone(), this.x - 2, this.y - 2 + bob);
+    if (this.flashTimer > 0 || this.dying) ctx.globalAlpha = this.dying ? 0.6 : 0.5;
+
+    // Spin if dying
+    if (this.dying) {
+      ctx.save();
+      const cx = this.x + this.w / 2 - 2;
+      const cy = this.y + this.h / 2 - 2;
+      ctx.translate(cx, cy);
+      ctx.rotate(this.deathAnim * 10);
+      ctx.drawImage(Sprites.drone(), -this.w / 2, -this.h / 2);
+      ctx.restore();
+    } else {
+      ctx.drawImage(Sprites.drone(), this.x - 2, this.y - 2 + bob);
+    }
     ctx.globalAlpha = 1;
 
     // HP bar
@@ -467,7 +515,7 @@ class Drone {
     ctx.fillStyle = '#333';
     ctx.fillRect(bx, by, barW, barH);
     ctx.fillStyle = '#ff3333';
-    ctx.fillRect(bx, by, barW * (this.hp / this.maxHp), barH);
+    ctx.fillRect(bx, by, barW * Math.max(0, this.hp / this.maxHp), barH);
   }
 }
 
@@ -486,20 +534,60 @@ class SecurityBoss {
     this.stateTimer = 1;
     this.dashTarget = { x: 0, y: 0 };
     this.flashTimer = 0;
+    this.dying = false;
+    this.deathAnim = 0;
   }
 
   takeDamage(amount, game) {
+    if (this.dying) return;
     this.hp -= amount;
     this.flashTimer = 0.1;
     Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
     if (this.hp <= 0) {
-      this.alive = false;
+      this.hp = 0;
+      this.dying = true;
+      this.deathAnim = 2.5;
       game.player.score += 1000;
-      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#888899', 30);
     }
   }
 
   update(dt, game) {
+    // Death animation: stumbles, sparks fly, collapses
+    if (this.dying) {
+      this.deathAnim -= dt;
+      const cx = this.x + this.w / 2;
+      const cy = this.y + this.h / 2;
+      // Stumble sideways
+      this.x += Math.sin(this.deathAnim * 5) * 1.5;
+      // Sparks and flashes
+      if (Math.random() < 0.3) {
+        Particles.sparks(
+          cx + (Math.random() - 0.5) * 30,
+          cy + (Math.random() - 0.5) * 30
+        );
+      }
+      // Scattered "tie" and "hair" particles
+      if (this.deathAnim < 1.5 && Math.random() < 0.25) {
+        const angle = Math.random() * Math.PI * 2;
+        Particles.list.push({
+          x: cx, y: cy,
+          vx: Math.cos(angle) * (40 + Math.random() * 60),
+          vy: Math.sin(angle) * (40 + Math.random() * 60) - 20,
+          life: 1.0 + Math.random(),
+          maxLife: 1.5,
+          size: 3 + Math.random() * 3,
+          color: ['#cc0000', '#f5d442', '#1a1a6a', '#ffe066'][Math.floor(Math.random() * 4)],
+        });
+      }
+      if (this.deathAnim <= 0) {
+        this.alive = false;
+        this.dying = false;
+        Particles.explode(cx, cy, '#ff6600', 25);
+        Particles.explode(cx, cy, '#f5d442', 20);
+      }
+      return;
+    }
+
     if (!this.alive) return;
     this.flashTimer = Math.max(0, this.flashTimer - dt);
 
@@ -591,7 +679,23 @@ class SecurityBoss {
   }
 
   draw(ctx) {
-    if (!this.alive) return;
+    if (!this.alive && !this.dying) return;
+
+    // Dying — shaking + fading
+    if (this.dying) {
+      const shake = (Math.random() - 0.5) * 5;
+      const alpha = Math.max(0.15, this.deathAnim / 2.5);
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(Sprites.securityBoss(), this.x - 2 + shake, this.y - 2);
+      ctx.globalAlpha = 1;
+
+      // HP bar at 0
+      const barW = 44;
+      const barH = 5;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(this.x, this.y - 10, barW, barH);
+      return;
+    }
 
     // Stun indicator
     if (this.state === 'stun') {
@@ -633,20 +737,23 @@ class FinalBoss {
     this.y = y;
     this.w = 52;
     this.h = 52;
-    this.hp = 25;
-    this.maxHp = 25;
+    this.hp = 16;          // nerfed from 25
+    this.maxHp = 16;
     this.alive = true;
     this.phase = 1;
-    this.speed = 40;
+    this.speed = 35;       // nerfed from 40
     this.attackTimer = 0;
     this.teleportTimer = 0;
     this.moveAngle = 0;
     this.moveTimer = 0;
     this.flashTimer = 0;
     this.enraged = false;
+    this.deathAnim = 0;    // epic death animation timer
+    this.dying = false;
   }
 
   takeDamage(amount, game) {
+    if (this.dying) return;
     this.hp -= amount;
     this.flashTimer = 0.1;
     Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
@@ -656,32 +763,104 @@ class FinalBoss {
     if (hpPercent <= 0.3 && this.phase < 3) {
       this.phase = 3;
       this.enraged = true;
-      this.speed = 80;
+      this.speed = 60;   // nerfed from 80
       Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ff0000', 30);
     } else if (hpPercent <= 0.6 && this.phase < 2) {
       this.phase = 2;
-      this.speed = 55;
+      this.speed = 45;   // nerfed from 55
       Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ff6600', 20);
     }
 
     if (this.hp <= 0) {
       this.hp = 0;
-      this.alive = false;
+      this.dying = true;
+      this.deathAnim = 3.5; // 3.5 second epic death sequence
       game.player.score += 3000;
-      // Big explosion
-      for (let i = 0; i < 5; i++) {
-        setTimeout(() => {
-          Particles.explode(
-            this.x + this.w / 2 + (Math.random() - 0.5) * 40,
-            this.y + this.h / 2 + (Math.random() - 0.5) * 40,
-            ['#ff0000', '#ff6600', '#ffcc00'][i % 3], 20
-          );
-        }, i * 150);
-      }
+      // Clear all projectiles — mercy
+      game.projectiles = [];
     }
   }
 
   update(dt, game) {
+    // Epic death animation
+    if (this.dying) {
+      this.deathAnim -= dt;
+      this.flashTimer = 0.05;
+      const cx = this.x + this.w / 2;
+      const cy = this.y + this.h / 2;
+
+      // Phase 1 (3.5→2.0): rapid explosions around boss
+      if (this.deathAnim > 2.0) {
+        if (Math.random() < 0.4) {
+          Particles.explode(
+            cx + (Math.random() - 0.5) * 60,
+            cy + (Math.random() - 0.5) * 60,
+            ['#ff0000', '#ff6600', '#ffcc00', '#ffffff'][Math.floor(Math.random() * 4)],
+            8
+          );
+        }
+      }
+      // Phase 2 (2.0→0.8): screen-wide flashing, "files" scatter
+      if (this.deathAnim <= 2.0 && this.deathAnim > 0.8) {
+        if (Math.random() < 0.5) {
+          // Scatter "document" particles in all directions
+          for (let i = 0; i < 3; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 60 + Math.random() * 120;
+            Particles.list.push({
+              x: cx, y: cy,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              life: 1.5 + Math.random(),
+              maxLife: 2.0,
+              size: 4 + Math.random() * 4,
+              color: ['#fff', '#eee', '#ffd', '#ffe'][Math.floor(Math.random() * 4)],
+            });
+          }
+          Particles.explode(cx, cy, '#ff4400', 6);
+        }
+      }
+      // Phase 3 (0.8→0): final massive explosion + white flash
+      if (this.deathAnim <= 0.8 && this.deathAnim > 0) {
+        if (!this._finalBlast) {
+          this._finalBlast = true;
+          // Huge multi-color explosion
+          for (let i = 0; i < 40; i++) {
+            const angle = (Math.PI * 2 * i) / 40;
+            const speed = 80 + Math.random() * 100;
+            Particles.list.push({
+              x: cx, y: cy,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed,
+              life: 1.2 + Math.random() * 0.8,
+              maxLife: 2.0,
+              size: 3 + Math.random() * 5,
+              color: ['#ff0000', '#ff6600', '#ffcc00', '#ffffff', '#ff3388'][i % 5],
+            });
+          }
+          // Ring of sparks
+          for (let i = 0; i < 20; i++) {
+            const angle = (Math.PI * 2 * i) / 20;
+            Particles.list.push({
+              x: cx + Math.cos(angle) * 30,
+              y: cy + Math.sin(angle) * 30,
+              vx: Math.cos(angle) * 150,
+              vy: Math.sin(angle) * 150,
+              life: 0.6,
+              maxLife: 0.6,
+              size: 2,
+              color: '#ffff88',
+            });
+          }
+        }
+      }
+      if (this.deathAnim <= 0) {
+        this.alive = false;
+        this.dying = false;
+      }
+      return;
+    }
+
     if (!this.alive) return;
     this.flashTimer = Math.max(0, this.flashTimer - dt);
 
@@ -702,29 +881,26 @@ class FinalBoss {
         this.y += Math.sin(this.moveAngle) * this.speed * dt;
 
         if (this.attackTimer <= 0) {
-          this.attackTimer = 1.0;
+          this.attackTimer = 1.4;   // nerfed from 1.0
           this.throwProjectile(game);
         }
         break;
 
       case 2: // Teleports randomly
         if (this.teleportTimer <= 0) {
-          this.teleportTimer = 2.0;
-          // Teleport
+          this.teleportTimer = 2.8;  // nerfed from 2.0
           Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#aa00ff', 15);
           this.x = 40 + Math.random() * (game.mapWidth - 80);
           this.y = 40 + Math.random() * (game.mapHeight - 120);
           Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#aa00ff', 15);
         }
         if (this.attackTimer <= 0) {
-          this.attackTimer = 0.8;
+          this.attackTimer = 1.2;    // nerfed from 0.8
           this.throwProjectile(game);
-          // Throw extra in phase 2
-          setTimeout(() => { if (this.alive) this.throwProjectile(game); }, 200);
         }
         break;
 
-      case 3: // Enrage — fast, many projectiles
+      case 3: // Enrage — chases, but nerfed
         {
           const dx = player.x - this.x;
           const dy = player.y - this.y;
@@ -733,23 +909,22 @@ class FinalBoss {
             this.x += (dx / dist) * this.speed * dt;
             this.y += (dy / dist) * this.speed * dt;
           }
-          // Contact damage
           if (dist < 30) player.takeDamage(1);
 
           if (this.attackTimer <= 0) {
-            this.attackTimer = 0.5;
-            // Spray in 4 directions
-            for (let a = 0; a < 4; a++) {
-              const angle = (Math.PI / 2) * a + Date.now() / 1000;
+            this.attackTimer = 0.8;  // nerfed from 0.5
+            // Spray 3 directions instead of 4
+            for (let a = 0; a < 3; a++) {
+              const angle = (Math.PI * 2 / 3) * a + Date.now() / 1000;
               game.projectiles.push(new Projectile(
                 this.x + this.w / 2, this.y + this.h / 2,
-                Math.cos(angle) * 110, Math.sin(angle) * 110, true
+                Math.cos(angle) * 80, Math.sin(angle) * 80, true  // nerfed speed from 110
               ));
             }
           }
 
           if (this.teleportTimer <= 0) {
-            this.teleportTimer = 3.0;
+            this.teleportTimer = 4.0;  // nerfed from 3.0
             Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ff0000', 15);
             this.x = 40 + Math.random() * (game.mapWidth - 80);
             this.y = 40 + Math.random() * (game.mapHeight - 120);
@@ -769,7 +944,7 @@ class FinalBoss {
     const dx = px - (this.x + this.w / 2);
     const dy = py - (this.y + this.h / 2);
     const dist = Math.hypot(dx, dy);
-    const speed = this.enraged ? 150 : 110;
+    const speed = this.enraged ? 100 : 80;  // nerfed from 150/110
     game.projectiles.push(new Projectile(
       this.x + this.w / 2, this.y + this.h / 2,
       (dx / dist) * speed, (dy / dist) * speed, true
@@ -777,7 +952,44 @@ class FinalBoss {
   }
 
   draw(ctx) {
-    if (!this.alive) return;
+    if (!this.alive && !this.dying) return;
+
+    // Death animation — boss shakes + white flash
+    if (this.dying) {
+      const shake = (Math.random() - 0.5) * 6;
+      const shake2 = (Math.random() - 0.5) * 6;
+      const alpha = Math.max(0.2, this.deathAnim / 3.5);
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(Sprites.villain(), this.x - 2 + shake, this.y - 2 + shake2);
+      ctx.globalAlpha = 1;
+
+      // White flash during final blast
+      if (this.deathAnim <= 0.8 && this.deathAnim > 0.3) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = `rgba(255,255,255,${(0.8 - this.deathAnim) * 1.5})`;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.restore();
+      }
+
+      // Boss HP bar still shows at 0
+      const barW2 = 200;
+      const barH2 = 8;
+      const bx2 = (ctx.canvas.width / 2 - barW2 / 2);
+      const by2 = 78;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(bx2 - 1, by2 - 1, barW2 + 2, barH2 + 2);
+      ctx.fillStyle = '#441111';
+      ctx.fillRect(bx2, by2, barW2, barH2);
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('THE ISLAND KEEPER', bx2 + barW2 / 2, by2 - 3);
+      ctx.restore();
+      return;
+    }
 
     // Enrage aura
     if (this.enraged) {
@@ -799,11 +1011,11 @@ class FinalBoss {
     ctx.drawImage(Sprites.villain(), this.x - 2, this.y - 2);
     ctx.globalAlpha = 1;
 
-    // Boss HP bar (wide, on top)
+    // Boss HP bar (below Telegram close button)
     const barW = 200;
     const barH = 8;
     const bx = (ctx.canvas.width / 2 - barW / 2);
-    const by = 30;
+    const by = 78;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset to screen coords
     ctx.fillStyle = '#222';
