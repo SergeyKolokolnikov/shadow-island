@@ -202,7 +202,7 @@ if (BOT_TOKEN) {
         return `${medal} ${escapeMarkdown(name)} ${e.score} (${timeStr})`;
       }).join('\n');
 
-      lbText += `\n\n Всего агентов: *${leaderboard.length}*`;
+      //lbText += `\n\n Всего агентов: *${leaderboard.length}*`;
     } else {
       lbText += '🏆 *ЛУЧШИЕ АГЕНТЫ*\n';
       lbText += '🕳 _Пока нет результатов. Стань первым агентом, выполнившим миссию!_';
