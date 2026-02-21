@@ -240,8 +240,50 @@ async function googleGetLeaderboard(limit = 50) {
   }
 }
 
+// ─── Health check — direct connection test with error propagation ───────────
+async function googleHealthCheck() {
+  if (!GOOGLE_CREDS_BASE64 || !GOOGLE_SHEETS_ID) {
+    return { connected: false, error: 'GOOGLE_SHEETS_ID or GOOGLE_CREDS_BASE64 not set' };
+  }
+
+  try {
+    const creds = JSON.parse(
+      Buffer.from(GOOGLE_CREDS_BASE64, 'base64').toString()
+    );
+
+    const auth = new google.auth.GoogleAuth({
+      credentials: creds,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    const client = await auth.getClient();
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    // Try reading the spreadsheet metadata
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: GOOGLE_SHEETS_ID,
+    });
+
+    const sheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
+
+    return {
+      connected: true,
+      title: spreadsheet.data.properties.title,
+      sheets: sheetNames,
+      serviceAccount: creds.client_email || 'unknown',
+    };
+  } catch (err) {
+    return {
+      connected: false,
+      error: err.message,
+      code: err.code || null,
+    };
+  }
+}
+
 module.exports = {
   googleAddUser,
   googleUpdateScore,
   googleGetLeaderboard,
+  googleHealthCheck,
 };

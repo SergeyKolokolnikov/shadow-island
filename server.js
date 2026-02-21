@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
-const { googleAddUser, googleUpdateScore, googleGetLeaderboard } = require('./google-sheets');
+const { googleAddUser, googleUpdateScore, googleGetLeaderboard, googleHealthCheck } = require('./google-sheets');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -106,26 +106,17 @@ app.get('/leaderboard', async (req, res) => {
 // ─── GET /health — check Google Sheets connection status ─────────────────────
 app.get('/health', async (req, res) => {
   const gsConfigured = !!(process.env.GOOGLE_SHEETS_ID && process.env.GOOGLE_CREDS_BASE64);
-  let gsConnected = false;
-  let gsError = null;
 
-  if (gsConfigured) {
-    try {
-      const lb = await googleGetLeaderboard(1);
-      gsConnected = lb !== null;
-    } catch (err) {
-      gsError = err.message;
-    }
-  }
+  // Direct connection test with full error details
+  const healthResult = await googleHealthCheck();
 
   res.json({
     status: 'ok',
     googleSheets: {
       configured: gsConfigured,
-      connected: gsConnected,
-      sheetsId: process.env.GOOGLE_SHEETS_ID ? process.env.GOOGLE_SHEETS_ID.substring(0, 8) + '...' : 'NOT SET',
-      credsSet: !!process.env.GOOGLE_CREDS_BASE64,
-      error: gsError,
+      ...healthResult,
+      sheetsId: process.env.GOOGLE_SHEETS_ID ? process.env.GOOGLE_SHEETS_ID.substring(0, 12) + '...' : 'NOT SET',
+      credsLength: process.env.GOOGLE_CREDS_BASE64 ? process.env.GOOGLE_CREDS_BASE64.length : 0,
     },
     inMemoryScores: scores.size,
   });
