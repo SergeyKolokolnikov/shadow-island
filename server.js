@@ -174,7 +174,7 @@ if (BOT_TOKEN) {
       // Find max score for bar chart
       const maxScore = leaderboard[0].score || 1;
 
-      lbText = '🏆 *ЛУЧШИЕ АГЕНТЫ*\n';
+      lbText = '🏆 *ЛУЧШИЕ АГЕНТЫ*\n\n';
 
       lbText += leaderboard.map((e, i) => {
         const medal = i < 3 ? medals[i] : (nums[i - 3] || `${i + 1}.`);
@@ -197,12 +197,12 @@ if (BOT_TOKEN) {
 
         // Top 3 get special formatting
         if (i < 3) {
-          return `${medal} *${escapeMarkdown(name)}*\n      ${bar}  *${e.score}* очк${timeStr}`;
+          return `${medal} *${escapeMarkdown(name)}* *${e.score}* очк${timeStr}`;
         }
-        return `${medal} ${escapeMarkdown(name)}\n      ${bar}  ${e.score} очк${timeStr}`;
-      }).join('\n\n');
+        return `${medal} ${escapeMarkdown(name)} ${e.score} очк${timeStr}`;
+      }).join('\n');
 
-      lbText += `\n Всего агентов: *${leaderboard.length}*`;
+      lbText += `\n\n Всего агентов: *${leaderboard.length}*`;
     } else {
       lbText += '🏆 *ЛУЧШИЕ АГЕНТЫ*\n';
       lbText += '🕳 _Пока нет результатов. Стань первым агентом, выполнившим миссию!_';
@@ -210,7 +210,7 @@ if (BOT_TOKEN) {
 
     const text = `👋 Привет, *${escapeMarkdown(firstName)}*!\n\n` +
       `*Операция: Тёмный Остров*\n\n` +
-      `Проникни на остров, сражайся с охраной, взломай терминалы и победи злодея!\n` +
+      `Проникни на остров, сражайся с охраной, взломай терминалы и победи злодея!\n\n` +
       lbText;
 
     // Inline button to launch the game
