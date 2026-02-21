@@ -11,7 +11,31 @@
       "Bash(git config:*)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(gh repo create:*)",
+      "Bash(PORT=3099 BOT_TOKEN=8539584432:AAEILv3RitVawD0Db3qMNzLMaHeMKPgbzBk APP_URL=https://example.com timeout 5 node:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill -9)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland status)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland add package.json package-lock.json public/css/style.css public/index.html public/js/input.js public/js/sprites.js server.js)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland commit -m \"$\\(cat <<''EOF''\nAdd joystick controls, Trump-style boss sprite, and Telegram bot /start leaderboard\n\n- Replace D-pad with virtual joystick circle for mobile controls\n- Restyle final boss villain with blonde hair caricature\n- Add Telegram bot with /start command showing leaderboard \\(nickname + time\\)\n- Add node-telegram-bot-api dependency\n- Add APP_URL env var for web_app button in bot\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland push origin master)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland add public/css/style.css public/index.html public/js/entities.js public/js/game.js public/js/input.js public/js/sprites.js)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland commit -m \"$\\(cat <<''EOF''\nKick joystick, health drops, boss reskins \\(Trump + Epstein caricatures\\)\n\n- Replace ATK button with right-side kick joystick for directional kicks\n- Kick shows animated leg + boot + impact flash visual\n- Both keyboard \\(Space\\) and kick joystick trigger kicks\n- Guards drop health pickups on death \\(40% chance\\)\n- Health pickups bob and glow, heal 1 HP on pickup\n- Security Boss \\(Level 2\\) restyled as Trump caricature: blonde combover, blue suit, red tie\n- Final Boss \\(Level 4\\) restyled as Epstein caricature: dark hair, open-collar shirt, tanned skin\n- Boss HP bar now reads \"THE ISLAND KEEPER\"\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland add server.js)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland commit -m \"$\\(cat <<''EOF''\nTranslate Telegram bot messages to Russian\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland add public/js/entities.js public/js/ui.js)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland commit -m \"$\\(cat <<''EOF''\nNerf final boss, epic death animations for all bosses, move HUD down\n\n- Final boss nerfed: 16 HP \\(was 25\\), slower projectiles \\(80/100 vs 110/150\\),\n  longer cooldowns, 3 spray directions instead of 4, slower enrage speed\n- Final boss epic death: 3.5s sequence with explosions, scattered document\n  particles, ring of sparks, screen-wide white flash\n- Drone \\(L1 boss\\) death: spinning spiral crash with smoke trail, ground explosion\n- Security boss \\(L2\\) death: stumbles with sparks, colored particles scatter,\n  shaking + fading, final blast\n- All boss deaths clear projectiles for mercy window\n- HP hearts moved to y=44 \\(was y=8\\) to avoid Telegram close button overlap\n- All HUD elements \\(score, level name, timer\\) shifted down accordingly\n- Boss HP bar moved to y=78\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(python3:*)",
+      "Bash(jobs:*)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland log --oneline -3)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland diff --stat)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland add google-sheets.js package.json package-lock.json server.js public/js/telegram.js)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland commit -m \"$\\(cat <<''EOF''\nAdd Google Sheets integration for user registration and leaderboard\n\n- New google-sheets.js module with googleapis SDK\n- Users auto-registered in \"users\" sheet on game open and /start command\n- Score and time written to Google Sheets on game completion\n- Leaderboard reads from Google Sheets \\(falls back to in-memory\\)\n- Auto-creates \"users\" sheet with headers if missing\n- Env vars: GOOGLE_SHEETS_ID, GOOGLE_CREDS_BASE64\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "WebFetch(domain:shadow-island-production.up.railway.app)",
+      "Bash(git -C /Users/sergeykolokolnikov/Documents/Projects/ShadowIsland remote -v)",
+      "WebFetch(domain:shadow-island.up.railway.app)",
+      "WebFetch(domain:web-production-b9822.up.railway.app)"
     ]
   }
 }
