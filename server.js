@@ -163,38 +163,68 @@ if (BOT_TOKEN) {
         .slice(0, 10);
     }
 
+    // Build message parts (plain Markdown for reliability)
     let lbText = '';
     if (leaderboard.length > 0) {
       const medals = ['🥇', '🥈', '🥉'];
-      lbText = '\n\n🏆 *ЛУЧШИЕ АГЕНТЫ:*\n';
+      const nums = ['4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+      const barFull = '▓';
+      const barEmpty = '░';
+
+      // Find max score for bar chart
+      const maxScore = leaderboard[0].score || 1;
+
+      lbText = '\n\n━━━━━━━━━━━━━━━━━━━━\n';
+      lbText += '🏆 *ЛУЧШИЕ АГЕНТЫ*\n';
+      lbText += '━━━━━━━━━━━━━━━━━━━━\n\n';
+
       lbText += leaderboard.map((e, i) => {
-        const medal = medals[i] || `${i + 1}.`;
+        const medal = i < 3 ? medals[i] : (nums[i - 3] || `${i + 1}.`);
         let timeStr = '';
         if (typeof e.time === 'string' && e.time.length > 0) {
-          timeStr = ` — ${e.time}`;
+          timeStr = `  ⏱ ${e.time}`;
         } else if (typeof e.time === 'number' && e.time > 0) {
           const mins = Math.floor(e.time / 60);
           const secs = Math.floor(e.time % 60);
-          timeStr = ` — ${mins}:${secs.toString().padStart(2, '0')}`;
+          timeStr = `  ⏱ ${mins}:${secs.toString().padStart(2, '0')}`;
         }
-        // Make username clickable link to Telegram profile
+
+        // Score bar (visual representation)
+        const barLen = 8;
+        const filled = Math.max(1, Math.round((e.score / maxScore) * barLen));
+        const bar = barFull.repeat(filled) + barEmpty.repeat(barLen - filled);
+
+        // Username — plain text without links (no web preview)
         const name = e.username || 'Agent';
-        const nameDisplay = name.startsWith('@') ? name : name;
-        const nameLink = name ? `[${escapeMarkdown(nameDisplay)}](https://t.me/${encodeURIComponent(name)})` : escapeMarkdown(name);
-        return `${medal} ${nameLink} — ${e.score} очк${timeStr}`;
-      }).join('\n');
+
+        // Top 3 get special formatting
+        if (i < 3) {
+          return `${medal} *${escapeMarkdown(name)}*\n      ${bar}  *${e.score}* очк${timeStr}`;
+        }
+        return `${medal} ${escapeMarkdown(name)}\n      ${bar}  ${e.score} очк${timeStr}`;
+      }).join('\n\n');
+
+      lbText += '\n\n━━━━━━━━━━━━━━━━━━━━';
+      lbText += `\n📊 Всего агентов: *${leaderboard.length}*`;
     } else {
-      lbText = '\n\n_Пока нет результатов. Стань первым агентом, выполнившим миссию!_';
+      lbText = '\n\n━━━━━━━━━━━━━━━━━━━━\n';
+      lbText += '🏆 *ЛУЧШИЕ АГЕНТЫ*\n';
+      lbText += '━━━━━━━━━━━━━━━━━━━━\n\n';
+      lbText += '🕳 _Пока нет результатов. Стань первым агентом, выполнившим миссию!_';
     }
 
     const text = `👋 Привет, *${escapeMarkdown(firstName)}*!\n\n` +
-      `🎮 *Операция: Тёмный Остров*\n` +
-      `Проникни на остров, сражайся с охраной, взломай терминалы и победи злодея!\n` +
+      `🎮 *Операция: Тёмный Остров*\n\n` +
+      `🏝 Проникни на остров\n` +
+      `⚔️ Сражайся с охраной\n` +
+      `💻 Взломай терминалы\n` +
+      `🦹 Победи злодея!\n` +
       lbText;
 
     // Inline button to launch the game
     const opts = {
       parse_mode: 'Markdown',
+      disable_web_page_preview: true,
       reply_markup: {
         inline_keyboard: [],
       },
@@ -210,7 +240,7 @@ if (BOT_TOKEN) {
     bot.sendMessage(chatId, text, opts);
   });
 
-  // Escape markdown special chars
+  // Escape MarkdownV2 special chars
   function escapeMarkdown(str) {
     return String(str).replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
   }
