@@ -184,7 +184,7 @@ if (BOT_TOKEN) {
         } else if (typeof e.time === 'number' && e.time > 0) {
           const mins = Math.floor(e.time / 60);
           const secs = Math.floor(e.time % 60);
-          timeStr = `  ⏱ ${mins}:${secs.toString().padStart(2, '0')}`;
+          timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
         // Score bar (visual representation)
@@ -197,9 +197,9 @@ if (BOT_TOKEN) {
 
         // Top 3 get special formatting
         if (i < 3) {
-          return `${medal} *${escapeMarkdown(name)}* *${e.score}* очк${timeStr}`;
+          return `${medal} *${escapeMarkdown(name)}* *${e.score}* (${timeStr})`;
         }
-        return `${medal} ${escapeMarkdown(name)} ${e.score} очк${timeStr}`;
+        return `${medal} ${escapeMarkdown(name)} ${e.score} (${timeStr})`;
       }).join('\n');
 
       lbText += `\n\n Всего агентов: *${leaderboard.length}*`;
