@@ -180,7 +180,7 @@ if (BOT_TOKEN) {
         const medal = i < 3 ? medals[i] : (nums[i - 3] || `${i + 1}.`);
         let timeStr = '';
         if (typeof e.time === 'string' && e.time.length > 0) {
-          timeStr = `  ⏱ ${e.time}`;
+          timeStr = `${e.time}`;
         } else if (typeof e.time === 'number' && e.time > 0) {
           const mins = Math.floor(e.time / 60);
           const secs = Math.floor(e.time % 60);
