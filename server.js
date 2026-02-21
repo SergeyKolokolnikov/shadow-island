@@ -147,7 +147,11 @@ if (BOT_TOKEN) {
           const secs = Math.floor(e.time % 60);
           timeStr = ` — ${mins}:${secs.toString().padStart(2, '0')}`;
         }
-        return `${medal} *${escapeMarkdown(e.username)}* — ${e.score} очк${timeStr}`;
+        // Make username clickable link to Telegram profile
+        const name = e.username || 'Agent';
+        const nameDisplay = name.startsWith('@') ? name : name;
+        const nameLink = name ? `[${escapeMarkdown(nameDisplay)}](https://t.me/${encodeURIComponent(name)})` : escapeMarkdown(name);
+        return `${medal} ${nameLink} — ${e.score} очк${timeStr}`;
       }).join('\n');
     } else {
       lbText = '\n\n_Пока нет результатов. Стань первым агентом, выполнившим миссию!_';
