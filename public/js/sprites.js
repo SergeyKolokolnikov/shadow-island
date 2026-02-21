@@ -201,110 +201,170 @@ const Sprites = {
     return this.create(56, 56, (ctx) => {
       const B = '#111';
       const W = '#ffffff';
-      const G = '#ddaa00'; // gold
-      const SKIN = '#d4a574'; // tanned skin
-      const HAIR = '#1a1a1a'; // dark hair
-      const SHIRT = '#4488aa'; // open collar shirt
-      const PANTS = '#ccbb88'; // khaki
+      const SKIN = '#c99a6b';    // tanned skin
+      const SKIN_LT = '#d4a87a'; // lighter skin for highlights
+      const SKIN_DK = '#a87848'; // darker skin for shadows/chin
+      const HAIR = '#1a1a1a';    // very dark hair
+      const HAIR2 = '#2a2a2a';   // slightly lighter for texture
+      const SHIRT = '#f0f0f0';   // white/cream polo shirt
+      const SHIRT2 = '#dcdcdc';  // shirt shadow
+      const PANTS = '#2a2a3a';   // dark navy pants
+      const SHOE = '#1a1a1a';
 
-      // Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      // Shadow on ground
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.beginPath();
-      ctx.ellipse(28, 54, 22, 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(28, 55, 20, 4, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Legs (khaki)
-      ctx.fillStyle = PANTS;
-      ctx.fillRect(16, 44, 10, 10);
-      ctx.fillRect(30, 44, 10, 10);
       // Shoes
-      ctx.fillStyle = '#443322';
-      ctx.fillRect(14, 52, 12, 4);
-      ctx.fillRect(30, 52, 12, 4);
+      ctx.fillStyle = SHOE;
+      ctx.fillRect(15, 52, 10, 4);
+      ctx.fillRect(31, 52, 10, 4);
 
-      // Body (casual open-collar shirt)
+      // Legs (dark pants)
+      ctx.fillStyle = PANTS;
+      ctx.fillRect(16, 44, 9, 9);
+      ctx.fillRect(31, 44, 9, 9);
+
+      // Body (polo shirt)
       ctx.fillStyle = SHIRT;
-      ctx.fillRect(10, 20, 36, 26);
-      // Collar
-      ctx.fillStyle = '#55aacc';
-      ctx.beginPath();
-      ctx.moveTo(22, 20);
-      ctx.lineTo(28, 28);
-      ctx.lineTo(34, 20);
-      ctx.closePath();
-      ctx.fill();
-      // Chest exposed in V
-      ctx.fillStyle = SKIN;
-      ctx.beginPath();
-      ctx.moveTo(23, 20);
-      ctx.lineTo(28, 27);
-      ctx.lineTo(33, 20);
-      ctx.closePath();
-      ctx.fill();
+      ctx.fillRect(10, 22, 36, 24);
+      ctx.fillStyle = SHIRT2;
+      ctx.fillRect(10, 22, 3, 24);  // left shadow
+      ctx.fillRect(43, 22, 3, 24);  // right shadow
 
-      // Arms
+      // Collar — polo style, open top two buttons
       ctx.fillStyle = SHIRT;
-      ctx.fillRect(4, 22, 8, 14);
-      ctx.fillRect(44, 22, 8, 14);
-      // Forearms (exposed skin — short sleeves)
+      ctx.fillRect(18, 19, 20, 5);
+      // Collar fold lines
+      ctx.fillStyle = SHIRT2;
+      ctx.fillRect(19, 19, 2, 4);
+      ctx.fillRect(35, 19, 2, 4);
+      // Open V - exposed chest/neck
       ctx.fillStyle = SKIN;
-      ctx.fillRect(4, 34, 8, 8);
-      ctx.fillRect(44, 34, 8, 8);
+      ctx.fillRect(24, 20, 8, 6);
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(26, 20, 4, 3); // neck shadow
 
-      // Head (egg-shaped, longer face)
+      // Arms (short sleeves)
+      ctx.fillStyle = SHIRT;
+      ctx.fillRect(3, 22, 9, 10);
+      ctx.fillRect(44, 22, 9, 10);
+      // Exposed forearms — tanned
       ctx.fillStyle = SKIN;
-      ctx.fillRect(15, 1, 26, 21);
-      ctx.fillRect(17, 0, 22, 23);
+      ctx.fillRect(3, 31, 9, 10);
+      ctx.fillRect(44, 31, 9, 10);
+      // Hands
+      ctx.fillStyle = SKIN_LT;
+      ctx.fillRect(4, 39, 7, 4);
+      ctx.fillRect(45, 39, 7, 4);
 
-      // Dark hair — receding, short on sides
+      // Neck
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(22, 18, 12, 5);
+
+      // Head — tall egg shape (signature long face)
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(16, 2, 24, 19);
+      ctx.fillRect(14, 4, 28, 15);
+      ctx.fillRect(18, 0, 20, 22);
+
+      // Dark hair — receding hairline, key feature
       ctx.fillStyle = HAIR;
-      ctx.fillRect(17, -1, 22, 5);
-      ctx.fillRect(15, 1, 4, 8);
-      ctx.fillRect(37, 1, 4, 8);
-      // Slight receding at temples
+      // Top of head — hair sits higher
+      ctx.fillRect(18, -2, 20, 5);
+      ctx.fillRect(16, -1, 24, 3);
+      // Sides — thicker, going down past ears
+      ctx.fillStyle = HAIR;
+      ctx.fillRect(14, 2, 4, 10);
+      ctx.fillRect(38, 2, 4, 10);
+      ctx.fillStyle = HAIR2;
+      ctx.fillRect(14, 2, 2, 8);
+      ctx.fillRect(40, 2, 2, 8);
+      // Receding temples — skin showing through
       ctx.fillStyle = SKIN;
-      ctx.fillRect(18, 0, 3, 2);
-      ctx.fillRect(35, 0, 3, 2);
+      ctx.fillRect(19, -1, 4, 3);
+      ctx.fillRect(33, -1, 4, 3);
+      // Forehead — tall and exposed (signature)
+      ctx.fillStyle = SKIN_LT;
+      ctx.fillRect(20, 2, 16, 3);
 
-      // Ears
+      // Ears — slightly protruding
       ctx.fillStyle = SKIN;
-      ctx.fillRect(13, 8, 3, 6);
-      ctx.fillRect(40, 8, 3, 6);
+      ctx.fillRect(12, 8, 3, 7);
+      ctx.fillRect(41, 8, 3, 7);
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(13, 9, 1, 5);
+      ctx.fillRect(42, 9, 1, 5);
 
-      // Eyes (heavy-lidded)
+      // Eyebrows — thick, dark, close together (key feature)
+      ctx.fillStyle = HAIR;
+      ctx.fillRect(19, 6, 8, 2);
+      ctx.fillRect(29, 6, 8, 2);
+      // Slightly angled inward (stern look)
+      ctx.fillRect(26, 6, 4, 1);
+
+      // Eyes — small, deep-set, close together
       ctx.fillStyle = W;
-      ctx.fillRect(20, 9, 6, 4);
-      ctx.fillRect(32, 9, 6, 4);
-      ctx.fillStyle = '#443322'; // dark brown
-      ctx.fillRect(23, 10, 3, 3);
-      ctx.fillRect(35, 10, 3, 3);
+      ctx.fillRect(20, 8, 6, 4);
+      ctx.fillRect(30, 8, 6, 4);
+      // Iris — dark
+      ctx.fillStyle = '#2a2a22';
+      ctx.fillRect(23, 9, 3, 3);
+      ctx.fillRect(33, 9, 3, 3);
+      // Pupils
       ctx.fillStyle = B;
-      ctx.fillRect(24, 10, 2, 2);
-      ctx.fillRect(36, 10, 2, 2);
-      // Heavy eyebrows
-      ctx.fillStyle = HAIR;
-      ctx.fillRect(19, 7, 8, 2);
-      ctx.fillRect(31, 7, 8, 2);
-      // Bags under eyes
-      ctx.fillStyle = '#b8956a';
-      ctx.fillRect(20, 13, 6, 1);
-      ctx.fillRect(32, 13, 6, 1);
+      ctx.fillRect(24, 9, 2, 2);
+      ctx.fillRect(34, 9, 2, 2);
+      // Upper eyelids — heavy, hooded
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(20, 8, 6, 1);
+      ctx.fillRect(30, 8, 6, 1);
+      // Under-eye bags/lines (signature tired look)
+      ctx.fillStyle = '#a08058';
+      ctx.fillRect(20, 12, 6, 1);
+      ctx.fillRect(30, 12, 6, 1);
 
-      // Nose (prominent)
-      ctx.fillStyle = '#c49060';
-      ctx.fillRect(27, 11, 4, 5);
-      ctx.fillRect(26, 15, 6, 2);
+      // Nose — large, bulbous, wide (key feature)
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(26, 10, 4, 6);
+      ctx.fillRect(25, 14, 6, 3);
+      ctx.fillStyle = '#b08050';
+      ctx.fillRect(27, 11, 2, 4);
+      // Nostrils
+      ctx.fillStyle = '#805838';
+      ctx.fillRect(25, 16, 2, 1);
+      ctx.fillRect(29, 16, 2, 1);
 
-      // Mouth (thin smirk)
-      ctx.fillStyle = '#994444';
-      ctx.fillRect(23, 18, 12, 2);
-      // Slight smirk curl
-      ctx.fillStyle = '#aa5555';
+      // Nasolabial folds (creases from nose to mouth)
+      ctx.fillStyle = '#a08058';
+      ctx.fillRect(23, 14, 1, 4);
+      ctx.fillRect(32, 14, 1, 4);
+
+      // Mouth — wide, thin-lipped smirk (signature)
+      ctx.fillStyle = '#884040';
+      ctx.fillRect(21, 18, 14, 2);
+      // Upper lip line
+      ctx.fillStyle = '#773333';
+      ctx.fillRect(22, 18, 12, 1);
+      // Smirk — right side curls up
+      ctx.fillStyle = '#995050';
       ctx.fillRect(34, 17, 2, 1);
+      ctx.fillRect(35, 17, 1, 1);
+      // Teeth glimpse
+      ctx.fillStyle = '#f0e8e0';
+      ctx.fillRect(24, 18, 8, 1);
 
-      // Chin
-      ctx.fillStyle = '#c49a6a';
-      ctx.fillRect(24, 20, 10, 2);
+      // Chin — long, prominent (signature long face)
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(22, 20, 12, 2);
+      ctx.fillStyle = '#b08860';
+      ctx.fillRect(24, 21, 8, 1);
+
+      // 5 o'clock shadow / stubble hint
+      ctx.fillStyle = 'rgba(30,30,30,0.12)';
+      ctx.fillRect(20, 17, 16, 5);
     });
   },
 
