@@ -368,6 +368,241 @@ const Sprites = {
     });
   },
 
+  // ── Tech Boss sprite (server room — Bill Gates caricature) ──────────────
+  techBoss() {
+    return this.create(48, 48, (ctx) => {
+      const B = '#111';
+      const W = '#ffffff';
+      const SKIN = '#f0cca8';    // light skin
+      const SKIN_DK = '#d4aa80'; // shadows
+      const HAIR = '#6a6a6a';    // grey-brown hair
+      const HAIR_DK = '#4a4a4a';
+      const SWEATER = '#6a4a8a'; // purple sweater (signature)
+      const SWEATER_DK = '#5a3a7a';
+      const PANTS = '#4a4a5a';   // dark pants
+      const GLASS = '#aaccee';   // glasses
+
+      // Legs
+      ctx.fillStyle = PANTS;
+      ctx.fillRect(14, 40, 8, 8);
+      ctx.fillRect(26, 40, 8, 8);
+
+      // Body (purple sweater — signature look)
+      ctx.fillStyle = SWEATER;
+      ctx.fillRect(8, 20, 32, 22);
+      ctx.fillStyle = SWEATER_DK;
+      ctx.fillRect(8, 20, 4, 22);
+      ctx.fillRect(36, 20, 4, 22);
+      // Crew neck
+      ctx.fillStyle = SWEATER;
+      ctx.fillRect(18, 18, 12, 4);
+
+      // Arms
+      ctx.fillStyle = SWEATER;
+      ctx.fillRect(3, 22, 7, 14);
+      ctx.fillRect(38, 22, 7, 14);
+      // Hands
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(3, 34, 7, 5);
+      ctx.fillRect(38, 34, 7, 5);
+
+      // Head — rounder, wider
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(12, 2, 24, 18);
+      ctx.fillRect(14, 1, 20, 20);
+
+      // Hair — short, greying, side-parted
+      ctx.fillStyle = HAIR;
+      ctx.fillRect(14, 0, 20, 4);
+      ctx.fillRect(12, 1, 4, 6);
+      ctx.fillRect(32, 1, 4, 6);
+      // Part on left side
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(18, 0, 2, 2);
+      // Slightly receding
+      ctx.fillStyle = HAIR_DK;
+      ctx.fillRect(14, 0, 3, 3);
+
+      // Ears
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(10, 8, 3, 5);
+      ctx.fillRect(35, 8, 3, 5);
+
+      // Glasses — large rectangular (key feature)
+      ctx.fillStyle = '#334455';
+      // Frames
+      ctx.fillRect(14, 8, 9, 6);
+      ctx.fillRect(25, 8, 9, 6);
+      // Bridge
+      ctx.fillRect(23, 9, 2, 2);
+      // Lenses
+      ctx.fillStyle = GLASS;
+      ctx.fillRect(15, 9, 7, 4);
+      ctx.fillRect(26, 9, 7, 4);
+      // Reflection
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(16, 9, 2, 2);
+      ctx.fillRect(27, 9, 2, 2);
+      // Eyes behind glasses
+      ctx.fillStyle = '#446688';
+      ctx.fillRect(18, 10, 2, 2);
+      ctx.fillRect(30, 10, 2, 2);
+      ctx.fillStyle = B;
+      ctx.fillRect(19, 10, 1, 1);
+      ctx.fillRect(31, 10, 1, 1);
+
+      // Eyebrows — lighter
+      ctx.fillStyle = HAIR;
+      ctx.fillRect(15, 7, 7, 1);
+      ctx.fillRect(26, 7, 7, 1);
+
+      // Nose — medium
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(22, 11, 4, 4);
+      ctx.fillRect(21, 14, 6, 2);
+
+      // Mouth — slight smile
+      ctx.fillStyle = '#bb7766';
+      ctx.fillRect(19, 17, 10, 2);
+      ctx.fillStyle = '#cc8877';
+      ctx.fillRect(28, 16, 2, 1); // smile upturn
+      // Teeth
+      ctx.fillStyle = W;
+      ctx.fillRect(21, 17, 6, 1);
+    });
+  },
+
+  // ── Politician Boss sprite (villa — Biden caricature) ─────────────────
+  politicianBoss() {
+    return this.create(48, 48, (ctx) => {
+      const B = '#111';
+      const W = '#ffffff';
+      const SKIN = '#f0c8a8';    // fair skin
+      const SKIN_DK = '#d0a888'; // shadows
+      const HAIR = '#e8e8e8';    // white hair
+      const HAIR2 = '#d0d0d0';
+      const SUIT = '#1a2244';    // dark navy suit
+      const SUIT_DK = '#111833';
+      const TIE = '#2244aa';     // blue tie
+      const SHIRT = '#f0f0ff';
+
+      // Legs
+      ctx.fillStyle = SUIT_DK;
+      ctx.fillRect(14, 40, 8, 8);
+      ctx.fillRect(26, 40, 8, 8);
+      // Shoes
+      ctx.fillStyle = B;
+      ctx.fillRect(13, 46, 10, 2);
+      ctx.fillRect(25, 46, 10, 2);
+
+      // Body (formal suit)
+      ctx.fillStyle = SUIT;
+      ctx.fillRect(8, 20, 32, 22);
+      // Lapels
+      ctx.fillStyle = SUIT_DK;
+      ctx.fillRect(10, 20, 5, 14);
+      ctx.fillRect(33, 20, 5, 14);
+      // White shirt triangle
+      ctx.fillStyle = SHIRT;
+      ctx.beginPath();
+      ctx.moveTo(20, 20);
+      ctx.lineTo(28, 20);
+      ctx.lineTo(24, 28);
+      ctx.closePath();
+      ctx.fill();
+      // Blue tie
+      ctx.fillStyle = TIE;
+      ctx.fillRect(22, 22, 4, 14);
+      ctx.fillRect(21, 36, 6, 3);
+      // Tie knot
+      ctx.fillStyle = '#1a3388';
+      ctx.fillRect(21, 22, 6, 3);
+
+      // Arms
+      ctx.fillStyle = SUIT;
+      ctx.fillRect(3, 22, 7, 14);
+      ctx.fillRect(38, 22, 7, 14);
+      // Hands
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(3, 34, 7, 5);
+      ctx.fillRect(38, 34, 7, 5);
+
+      // Head — older, slightly longer
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(13, 2, 22, 19);
+      ctx.fillRect(15, 1, 18, 21);
+
+      // White hair — full on top, swept back (key feature)
+      ctx.fillStyle = HAIR;
+      ctx.fillRect(13, 0, 22, 5);
+      ctx.fillRect(11, 1, 26, 4);
+      // Sides — going down to ears
+      ctx.fillRect(11, 1, 4, 8);
+      ctx.fillRect(33, 1, 4, 8);
+      ctx.fillStyle = HAIR2;
+      // Hair texture/volume on top
+      ctx.fillRect(15, -1, 18, 3);
+      ctx.fillRect(13, 0, 3, 3);
+      ctx.fillRect(32, 0, 3, 3);
+
+      // Ears
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(10, 8, 3, 6);
+      ctx.fillRect(35, 8, 3, 6);
+
+      // Eyebrows — thick, lighter
+      ctx.fillStyle = '#cccccc';
+      ctx.fillRect(16, 7, 6, 2);
+      ctx.fillRect(26, 7, 6, 2);
+
+      // Eyes — squinting, smaller (aged)
+      ctx.fillStyle = W;
+      ctx.fillRect(17, 9, 5, 3);
+      ctx.fillRect(26, 9, 5, 3);
+      // Iris — blue
+      ctx.fillStyle = '#4477bb';
+      ctx.fillRect(19, 10, 2, 2);
+      ctx.fillRect(28, 10, 2, 2);
+      ctx.fillStyle = B;
+      ctx.fillRect(20, 10, 1, 1);
+      ctx.fillRect(29, 10, 1, 1);
+      // Crow's feet wrinkles
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(15, 10, 1, 2);
+      ctx.fillRect(32, 10, 1, 2);
+      // Under-eye lines
+      ctx.fillRect(17, 12, 5, 1);
+      ctx.fillRect(26, 12, 5, 1);
+
+      // Nose — longer
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(22, 10, 4, 5);
+      ctx.fillRect(21, 14, 6, 2);
+
+      // Mouth — wide, signature grin
+      ctx.fillStyle = '#bb6655';
+      ctx.fillRect(18, 17, 12, 2);
+      // Big teeth showing (signature smile)
+      ctx.fillStyle = W;
+      ctx.fillRect(19, 17, 10, 2);
+      // Lip line
+      ctx.fillStyle = '#aa5544';
+      ctx.fillRect(18, 17, 12, 1);
+
+      // Chin — prominent
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(20, 20, 8, 2);
+
+      // Wrinkle lines on forehead
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(16, 5, 16, 1);
+      ctx.fillRect(17, 6, 14, 1);
+
+      // Aviator sunglasses hint — thin frame on top (sometimes wears them)
+      // (keeping them off for indoor scene)
+    });
+  },
+
   // ── Projectile ───────────────────────────────────────────────────────────
   projectile() {
     return this.create(8, 8, (ctx) => {

@@ -239,7 +239,7 @@ const Levels = {
     },
 
     createBoss() {
-      return null; // No boss — destroy servers instead
+      return new TechBoss(220, 50);
     },
 
     createServers() {
@@ -318,7 +318,173 @@ const Levels = {
 
     checkWin(game) {
       if (!game.destructibles) return false;
-      return game.destructibles.every(s => s.destroyed);
+      const serversDown = game.destructibles.every(s => s.destroyed);
+      const bossDown = !game.boss || !game.boss.alive;
+      return serversDown && bossDown;
+    },
+  },
+
+  // ── LEVEL 4: Villa Ballroom ─────────────────────────────────────────────
+  villa: {
+    name: 'THE VILLA',
+    mapWidth: 520,
+    mapHeight: 750,
+    playerStart: { x: 250, y: 700 },
+
+    walls: [
+      // Boundary
+      { x: 0, y: 0, w: 520, h: 20 },
+      { x: 0, y: 0, w: 20, h: 750 },
+      { x: 500, y: 0, w: 20, h: 750 },
+      { x: 0, y: 730, w: 520, h: 20 },
+      // Grand pillars in ballroom
+      { x: 80, y: 150, w: 24, h: 24 },
+      { x: 416, y: 150, w: 24, h: 24 },
+      { x: 80, y: 350, w: 24, h: 24 },
+      { x: 416, y: 350, w: 24, h: 24 },
+      { x: 80, y: 550, w: 24, h: 24 },
+      { x: 416, y: 550, w: 24, h: 24 },
+      // Central stage/podium area
+      { x: 200, y: 80, w: 120, h: 20 },
+      // Side furniture
+      { x: 30, y: 400, w: 40, h: 25 },
+      { x: 450, y: 400, w: 40, h: 25 },
+    ],
+
+    createEnemies() {
+      return [
+        new Guard(100, 600, [{ x: 100, y: 600 }, { x: 400, y: 600 }]),
+        new Guard(420, 300, [{ x: 420, y: 300 }, { x: 420, y: 500 }]),
+        new Guard(100, 250, [{ x: 100, y: 250 }, { x: 300, y: 250 }]),
+      ];
+    },
+
+    createBoss() {
+      return new PoliticianBoss(230, 120);
+    },
+
+    drawBackground(ctx, w, h) {
+      // Elegant ballroom floor
+      ctx.fillStyle = '#2a1a10';
+      ctx.fillRect(0, 0, w, h);
+
+      // Parquet floor pattern
+      for (let ty = 0; ty < h; ty += 40) {
+        for (let tx = 0; tx < w; tx += 40) {
+          const checker = ((tx / 40) + (ty / 40)) % 2;
+          ctx.fillStyle = checker ? '#3a2818' : '#2e1e12';
+          ctx.fillRect(tx, ty, 40, 40);
+          // Wood grain lines
+          ctx.strokeStyle = 'rgba(255,200,100,0.04)';
+          ctx.lineWidth = 1;
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(tx, ty + 8 + i * 12);
+            ctx.lineTo(tx + 40, ty + 8 + i * 12);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Grand carpet down center
+      ctx.fillStyle = '#4a1111';
+      ctx.fillRect(180, 0, 160, h);
+      ctx.fillStyle = '#5a1818';
+      ctx.fillRect(190, 0, 140, h);
+      // Gold border on carpet
+      ctx.fillStyle = '#aa8822';
+      ctx.fillRect(185, 0, 2, h);
+      ctx.fillRect(333, 0, 2, h);
+
+      // Stage at top
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(140, 30, 240, 70);
+      ctx.fillStyle = '#4a3a2a';
+      ctx.fillRect(145, 35, 230, 60);
+      // Podium
+      ctx.fillStyle = '#5a4830';
+      ctx.fillRect(240, 45, 40, 40);
+      ctx.fillStyle = '#6a5840';
+      ctx.fillRect(245, 50, 30, 30);
+      // Presidential seal (circle)
+      ctx.fillStyle = '#aa8822';
+      ctx.beginPath();
+      ctx.arc(260, 65, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2244aa';
+      ctx.beginPath();
+      ctx.arc(260, 65, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Chandeliers (decorative circles)
+      ctx.fillStyle = 'rgba(255, 220, 100, 0.06)';
+      ctx.beginPath();
+      ctx.arc(160, 250, 60, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(360, 250, 60, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(260, 450, 80, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Wall paintings (decorative rectangles on sides)
+      ctx.fillStyle = '#4a3a28';
+      ctx.fillRect(25, 150, 30, 40);
+      ctx.fillRect(465, 150, 30, 40);
+      ctx.fillStyle = '#2244aa';
+      ctx.fillRect(28, 153, 24, 34);
+      ctx.fillRect(468, 153, 24, 34);
+
+      // American flags at stage
+      ctx.fillStyle = '#cc2222';
+      ctx.fillRect(155, 35, 8, 25);
+      ctx.fillRect(357, 35, 8, 25);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(155, 40, 8, 3);
+      ctx.fillRect(155, 46, 8, 3);
+      ctx.fillRect(357, 40, 8, 3);
+      ctx.fillRect(357, 46, 8, 3);
+      ctx.fillStyle = '#2244aa';
+      ctx.fillRect(155, 35, 4, 8);
+      ctx.fillRect(357, 35, 4, 8);
+    },
+
+    drawWalls(ctx) {
+      // Pillars — marble style
+      for (let i = 4; i <= 9; i++) {
+        const w = this.walls[i];
+        // Pillar base
+        ctx.fillStyle = '#d8c8a8';
+        ctx.fillRect(w.x - 2, w.y - 2, w.w + 4, w.h + 4);
+        // Pillar body
+        ctx.fillStyle = '#e8d8b8';
+        ctx.fillRect(w.x, w.y, w.w, w.h);
+        // Pillar highlight
+        ctx.fillStyle = '#f0e8d0';
+        ctx.fillRect(w.x + 2, w.y + 2, w.w / 2 - 2, w.h - 4);
+        // Gold cap
+        ctx.fillStyle = '#ccaa44';
+        ctx.fillRect(w.x - 1, w.y - 1, w.w + 2, 3);
+      }
+      // Stage wall
+      const sw = this.walls[10];
+      ctx.fillStyle = '#4a3a28';
+      ctx.fillRect(sw.x, sw.y, sw.w, sw.h);
+      ctx.fillStyle = '#5a4a38';
+      ctx.fillRect(sw.x + 2, sw.y + 2, sw.w - 4, sw.h - 4);
+      // Side furniture
+      for (let i = 11; i < this.walls.length; i++) {
+        const w = this.walls[i];
+        ctx.fillStyle = '#5a3a2a';
+        ctx.fillRect(w.x, w.y, w.w, w.h);
+        ctx.fillStyle = '#6a4a3a';
+        ctx.fillRect(w.x + 2, w.y + 2, w.w - 4, w.h - 4);
+      }
+    },
+
+    checkWin(game) {
+      return game.boss && !game.boss.alive;
     },
   },
 
@@ -401,4 +567,4 @@ const Levels = {
 };
 
 // Level order
-const LEVEL_ORDER = ['beach', 'mansion', 'serverRoom', 'bossArena'];
+const LEVEL_ORDER = ['beach', 'mansion', 'serverRoom', 'villa', 'bossArena'];

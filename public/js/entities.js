@@ -730,6 +730,427 @@ class SecurityBoss {
   }
 }
 
+// ── Tech Boss (server room — Bill Gates caricature) ──────────────────────
+// Mechanics: deploys "firewall" shields, throws "virus" projectiles in bursts,
+// spawns mini-drones. Vulnerable when recharging.
+class TechBoss {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 44;
+    this.h = 44;
+    this.hp = 12;
+    this.maxHp = 12;
+    this.alive = true;
+    this.speed = 40;
+    this.state = 'move';  // move, burst, shield, recharge
+    this.stateTimer = 2;
+    this.flashTimer = 0;
+    this.burstCount = 0;
+    this.burstTimer = 0;
+    this.shieldActive = false;
+    this.shieldTimer = 0;
+    this.dying = false;
+    this.deathAnim = 0;
+    this.moveAngle = 0;
+  }
+
+  takeDamage(amount, game) {
+    if (this.dying) return;
+    if (this.shieldActive) {
+      // Shield absorbs damage — show sparks
+      Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+      return;
+    }
+    this.hp -= amount;
+    this.flashTimer = 0.1;
+    Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dying = true;
+      this.deathAnim = 2.5;
+      game.player.score += 1200;
+      game.projectiles = [];
+    }
+  }
+
+  update(dt, game) {
+    if (this.dying) {
+      this.deathAnim -= dt;
+      const cx = this.x + this.w / 2;
+      const cy = this.y + this.h / 2;
+      // Electrification death — sparks + blue screen particles
+      if (Math.random() < 0.4) {
+        Particles.list.push({
+          x: cx + (Math.random() - 0.5) * 40,
+          y: cy + (Math.random() - 0.5) * 40,
+          vx: (Math.random() - 0.5) * 80,
+          vy: (Math.random() - 0.5) * 80 - 20,
+          life: 0.6 + Math.random() * 0.5,
+          maxLife: 1.0,
+          size: 2 + Math.random() * 3,
+          color: ['#00aaff', '#4488ff', '#88ccff', '#ffffff', '#6a4a8a'][Math.floor(Math.random() * 5)],
+        });
+      }
+      // "BSOD" text particles
+      if (this.deathAnim < 1.5 && Math.random() < 0.15) {
+        Particles.list.push({
+          x: cx, y: cy,
+          vx: (Math.random() - 0.5) * 100,
+          vy: -30 - Math.random() * 50,
+          life: 1.0, maxLife: 1.2,
+          size: 3 + Math.random() * 3,
+          color: '#0044ff',
+        });
+      }
+      if (this.deathAnim <= 0) {
+        this.alive = false;
+        this.dying = false;
+        Particles.explode(cx, cy, '#00aaff', 30);
+        Particles.explode(cx, cy, '#6a4a8a', 20);
+      }
+      return;
+    }
+
+    if (!this.alive) return;
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+    this.stateTimer -= dt;
+
+    const player = game.player;
+    if (!player.alive) return;
+
+    switch (this.state) {
+      case 'move':
+        // Move around, tracking player loosely
+        this.moveAngle += (Math.random() - 0.5) * 2 * dt;
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 80) {
+          this.x += (dx / dist) * this.speed * dt;
+          this.y += (dy / dist) * this.speed * dt;
+        } else {
+          this.x += Math.cos(this.moveAngle) * this.speed * dt;
+          this.y += Math.sin(this.moveAngle) * this.speed * dt;
+        }
+        if (this.stateTimer <= 0) {
+          this.state = 'burst';
+          this.burstCount = 5;
+          this.burstTimer = 0;
+          this.stateTimer = 2.0;
+        }
+        break;
+
+      case 'burst':
+        // Rapid fire 5 "virus" projectiles
+        this.burstTimer -= dt;
+        if (this.burstTimer <= 0 && this.burstCount > 0) {
+          this.burstTimer = 0.25;
+          this.burstCount--;
+          const px = player.x + player.w / 2;
+          const py = player.y + player.h / 2;
+          const ddx = px - (this.x + this.w / 2);
+          const ddy = py - (this.y + this.h / 2);
+          const dd = Math.hypot(ddx, ddy);
+          const spread = (Math.random() - 0.5) * 0.4;
+          const angle = Math.atan2(ddy, ddx) + spread;
+          game.projectiles.push(new Projectile(
+            this.x + this.w / 2, this.y + this.h / 2,
+            Math.cos(angle) * 100, Math.sin(angle) * 100, true
+          ));
+        }
+        if (this.burstCount <= 0 && this.stateTimer <= 0) {
+          // Activate shield
+          this.state = 'shield';
+          this.shieldActive = true;
+          this.stateTimer = 2.5;
+          Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#00aaff', 10);
+        }
+        break;
+
+      case 'shield':
+        // Protected — moving slowly
+        this.x += Math.sin(Date.now() / 500) * 0.5;
+        if (this.stateTimer <= 0) {
+          this.state = 'recharge';
+          this.shieldActive = false;
+          this.stateTimer = 2.0;
+        }
+        break;
+
+      case 'recharge':
+        // Vulnerable! Standing still, "rebooting"
+        if (this.stateTimer <= 0) {
+          this.state = 'move';
+          this.stateTimer = 2.5;
+        }
+        break;
+    }
+
+    // Keep in bounds
+    this.x = Math.max(20, Math.min(game.mapWidth - this.w - 20, this.x));
+    this.y = Math.max(20, Math.min(game.mapHeight - this.h - 20, this.y));
+  }
+
+  draw(ctx) {
+    if (!this.alive && !this.dying) return;
+
+    if (this.dying) {
+      const shake = (Math.random() - 0.5) * 6;
+      ctx.globalAlpha = Math.max(0.15, this.deathAnim / 2.5);
+      ctx.drawImage(Sprites.techBoss(), this.x - 2 + shake, this.y - 2);
+      ctx.globalAlpha = 1;
+      return;
+    }
+
+    // Shield visual
+    if (this.shieldActive) {
+      ctx.strokeStyle = `rgba(0, 170, 255, ${0.4 + Math.sin(Date.now() / 100) * 0.2})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 30, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // Inner glow
+      ctx.fillStyle = 'rgba(0, 170, 255, 0.08)';
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Recharge indicator
+    if (this.state === 'recharge') {
+      ctx.strokeStyle = '#ffaa00';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 26, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1;
+    }
+
+    if (this.flashTimer > 0) ctx.globalAlpha = 0.5;
+    ctx.drawImage(Sprites.techBoss(), this.x - 2, this.y - 2);
+    ctx.globalAlpha = 1;
+
+    // HP bar
+    const barW = 44;
+    const barH = 5;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(this.x, this.y - 10, barW, barH);
+    ctx.fillStyle = this.shieldActive ? '#00aaff' : '#8844cc';
+    ctx.fillRect(this.x, this.y - 10, barW * (this.hp / this.maxHp), barH);
+  }
+}
+
+// ── Politician Boss (villa — Biden caricature) ──────────────────────────
+// Mechanics: slow but tanky, summons Secret Service guards,
+// does sweeping "speech" shockwave, charges with podium ram.
+class PoliticianBoss {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 44;
+    this.h = 44;
+    this.hp = 14;
+    this.maxHp = 14;
+    this.alive = true;
+    this.speed = 35;
+    this.state = 'walk';  // walk, speech, summon, stumble
+    this.stateTimer = 2.5;
+    this.flashTimer = 0;
+    this.dying = false;
+    this.deathAnim = 0;
+    this.summoned = 0;  // how many guards summoned
+  }
+
+  takeDamage(amount, game) {
+    if (this.dying) return;
+    this.hp -= amount;
+    this.flashTimer = 0.1;
+    Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.dying = true;
+      this.deathAnim = 2.5;
+      game.player.score += 1500;
+      game.projectiles = [];
+    }
+  }
+
+  update(dt, game) {
+    if (this.dying) {
+      this.deathAnim -= dt;
+      const cx = this.x + this.w / 2;
+      const cy = this.y + this.h / 2;
+      // Stumbles, papers fly, American flag particles
+      this.x += Math.sin(this.deathAnim * 3) * 2;
+      this.y += dt * 10;
+      if (Math.random() < 0.35) {
+        const angle = Math.random() * Math.PI * 2;
+        Particles.list.push({
+          x: cx, y: cy,
+          vx: Math.cos(angle) * (30 + Math.random() * 60),
+          vy: Math.sin(angle) * (30 + Math.random() * 60) - 20,
+          life: 1.0 + Math.random(),
+          maxLife: 1.5,
+          size: 3 + Math.random() * 3,
+          color: ['#cc2222', '#ffffff', '#2244aa', '#1a2244', '#e8e8e8'][Math.floor(Math.random() * 5)],
+        });
+      }
+      if (this.deathAnim <= 0) {
+        this.alive = false;
+        this.dying = false;
+        Particles.explode(cx, cy, '#cc2222', 20);
+        Particles.explode(cx, cy, '#2244aa', 20);
+        Particles.explode(cx, cy, '#ffffff', 15);
+      }
+      return;
+    }
+
+    if (!this.alive) return;
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+    this.stateTimer -= dt;
+
+    const player = game.player;
+    if (!player.alive) return;
+
+    switch (this.state) {
+      case 'walk':
+        // Walk toward player
+        {
+          const dx = player.x - this.x;
+          const dy = player.y - this.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 10) {
+            this.x += (dx / dist) * this.speed * dt;
+            this.y += (dy / dist) * this.speed * dt;
+          }
+          // Contact damage
+          if (dist < 28) player.takeDamage(1);
+        }
+        if (this.stateTimer <= 0) {
+          // Alternate between speech and summon
+          if (this.summoned < 3 && Math.random() < 0.4) {
+            this.state = 'summon';
+            this.stateTimer = 1.5;
+          } else {
+            this.state = 'speech';
+            this.stateTimer = 1.0;
+            Particles.alert(this.x + this.w / 2, this.y);
+          }
+        }
+        break;
+
+      case 'speech':
+        // Shockwave attack — expanding ring damages player
+        if (this.stateTimer <= 0.3 && !this._speechFired) {
+          this._speechFired = true;
+          const cx = this.x + this.w / 2;
+          const cy = this.y + this.h / 2;
+          // Ring of projectiles
+          for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            game.projectiles.push(new Projectile(
+              cx, cy,
+              Math.cos(angle) * 70, Math.sin(angle) * 70, true
+            ));
+          }
+          Particles.explode(cx, cy, '#2244aa', 15);
+        }
+        if (this.stateTimer <= 0) {
+          this._speechFired = false;
+          this.state = 'stumble';
+          this.stateTimer = 2.0;
+        }
+        break;
+
+      case 'summon':
+        // Summon a Secret Service guard
+        if (this.stateTimer <= 0.5 && !this._summonFired) {
+          this._summonFired = true;
+          this.summoned++;
+          const side = Math.random() > 0.5 ? game.mapWidth - 50 : 30;
+          const gy = 100 + Math.random() * (game.mapHeight - 200);
+          const guard = new Guard(side, gy, [
+            { x: side, y: gy },
+            { x: player.x, y: player.y },
+          ]);
+          guard.alertMode = true;
+          guard.alertTimer = 999;
+          guard.hp = 3;
+          game.enemies.push(guard);
+          Particles.explode(side, gy, '#1a2244', 10);
+        }
+        if (this.stateTimer <= 0) {
+          this._summonFired = false;
+          this.state = 'walk';
+          this.stateTimer = 3.0;
+        }
+        break;
+
+      case 'stumble':
+        // Vulnerable — moving erratically
+        this.x += Math.sin(this.stateTimer * 6) * 1.5;
+        if (this.stateTimer <= 0) {
+          this.state = 'walk';
+          this.stateTimer = 2.5;
+        }
+        break;
+    }
+
+    // Keep in bounds
+    this.x = Math.max(20, Math.min(game.mapWidth - this.w - 20, this.x));
+    this.y = Math.max(20, Math.min(game.mapHeight - this.h - 20, this.y));
+  }
+
+  draw(ctx) {
+    if (!this.alive && !this.dying) return;
+
+    if (this.dying) {
+      const shake = (Math.random() - 0.5) * 6;
+      ctx.globalAlpha = Math.max(0.15, this.deathAnim / 2.5);
+      ctx.drawImage(Sprites.politicianBoss(), this.x - 2 + shake, this.y - 2);
+      ctx.globalAlpha = 1;
+      return;
+    }
+
+    // Speech charge-up aura
+    if (this.state === 'speech') {
+      const progress = 1 - (this.stateTimer / 1.0);
+      ctx.fillStyle = `rgba(34, 68, 170, ${0.1 + progress * 0.15})`;
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 25 + progress * 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Stumble indicator
+    if (this.state === 'stumble') {
+      ctx.strokeStyle = '#ffaa00';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 28, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1;
+    }
+
+    if (this.flashTimer > 0) ctx.globalAlpha = 0.5;
+    ctx.drawImage(Sprites.politicianBoss(), this.x - 2, this.y - 2);
+    ctx.globalAlpha = 1;
+
+    // HP bar
+    const barW = 44;
+    const barH = 5;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(this.x, this.y - 10, barW, barH);
+    ctx.fillStyle = '#2244aa';
+    ctx.fillRect(this.x, this.y - 10, barW * (this.hp / this.maxHp), barH);
+  }
+}
+
 // ── Final Villain (3 phases) ───────────────────────────────────────────────
 class FinalBoss {
   constructor(x, y) {
