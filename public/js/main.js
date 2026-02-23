@@ -66,6 +66,9 @@
   function startGame() {
     showScreen('game');
 
+    // Track play attempt in Google Sheets
+    TG.trackPlay();
+
     game = new Game(gameCanvas);
 
     game.onGameOver = () => {
@@ -120,6 +123,7 @@
 
   btnRetry.addEventListener('click', () => {
     showScreen('game');
+    TG.trackPlay();
     if (game) game.restart();
   });
 

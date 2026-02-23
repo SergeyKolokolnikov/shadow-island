@@ -153,6 +153,13 @@ const Levels = {
       return new SecurityBoss(210, 80);
     },
 
+    createDesks() {
+      return [
+        new DestructibleDesk(60, 610, 'trump'),    // below left furniture
+        new DestructibleDesk(360, 610, 'trump'),   // below right furniture
+      ];
+    },
+
     createLasers() {
       return this.lasers.map(l => new LaserBeam(l.x1, l.y1, l.x2, l.y2, l.speed));
     },
@@ -361,6 +368,14 @@ const Levels = {
 
     createBoss() {
       return new PoliticianBoss(230, 120);
+    },
+
+    createDesks() {
+      return [
+        new DestructibleDesk(30, 450, 'biden'),    // left side below furniture
+        new DestructibleDesk(450, 450, 'biden'),   // right side below furniture
+        new DestructibleDesk(200, 55, 'biden'),    // on stage near podium
+      ];
     },
 
     drawBackground(ctx, w, h) {

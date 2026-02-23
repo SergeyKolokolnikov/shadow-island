@@ -16,6 +16,8 @@ class Game {
     this.lasers = [];
     this.destructibles = [];
     this.pickups = [];
+    this.desks = [];
+    this.starPickups = [];
 
     // Level
     this.currentLevelIndex = 0;
@@ -101,6 +103,10 @@ class Game {
 
     // Destructibles (server room)
     this.destructibles = level.createServers ? level.createServers() : [];
+
+    // Easter egg desks
+    this.desks = level.createDesks ? level.createDesks() : [];
+    this.starPickups = [];
 
     // Pickups
     this.pickups = [];
@@ -211,6 +217,11 @@ class Game {
       p.update(dt);
     }
 
+    // Star pickups (from desks)
+    for (const s of this.starPickups) {
+      s.update(dt);
+    }
+
     // Countdown
     if (this.countdown > 0) {
       this.countdown -= dt;
@@ -300,9 +311,19 @@ class Game {
       d.draw(ctx);
     }
 
+    // Easter egg desks
+    for (const d of this.desks) {
+      d.draw(ctx);
+    }
+
     // Health pickups
     for (const p of this.pickups) {
       p.draw(ctx);
+    }
+
+    // Star pickups
+    for (const s of this.starPickups) {
+      s.draw(ctx);
     }
 
     // Enemies

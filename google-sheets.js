@@ -70,7 +70,7 @@ async function ensureUsersSheet(sheets) {
     // Check if headers exist
     const headerRes = await sheets.spreadsheets.values.get({
       spreadsheetId: GOOGLE_SHEETS_ID,
-      range: 'users!A1:G1',
+      range: 'users!A1:H1',
     });
 
     const headerRow = (headerRes.data.values && headerRes.data.values[0]) || [];
@@ -79,13 +79,24 @@ async function ensureUsersSheet(sheets) {
       // Write headers
       await sheets.spreadsheets.values.update({
         spreadsheetId: GOOGLE_SHEETS_ID,
-        range: 'users!A1:G1',
+        range: 'users!A1:H1',
         valueInputOption: 'RAW',
         requestBody: {
-          values: [['Telegram Id', 'Telegram Username', 'Telegram Name', 'Telegram Is Premium', 'Created', 'Score Points', 'Score Time']],
+          values: [['Telegram Id', 'Telegram Username', 'Telegram Name', 'Telegram Is Premium', 'Created', 'Score Points', 'Score Time', 'Play Attempts']],
         },
       });
       console.log('[GSheets] Headers written to "users" sheet');
+    } else if (headerRow.length < 8 || headerRow[7] !== 'Play Attempts') {
+      // Add missing H column header
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: GOOGLE_SHEETS_ID,
+        range: 'users!H1',
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [['Play Attempts']],
+        },
+      });
+      console.log('[GSheets] Added "Play Attempts" header to column H');
     }
   } catch (err) {
     console.error('[GSheets] Error ensuring users sheet:', err.message);
@@ -107,21 +118,21 @@ async function googleAddUser(user) {
     // Check if user already exists
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: GOOGLE_SHEETS_ID,
-      range: 'users!A:G',
+      range: 'users!A:H',
     });
 
     const rows = response.data.values || [];
     const existingRowIndex = rows.findIndex(row => row[0] == telegramId);
 
     if (existingRowIndex === -1) {
-      // New user — append row (Score Points and Score Time empty for now)
+      // New user — append row (Score Points, Score Time, Play Attempts start at 0)
       await sheets.spreadsheets.values.append({
         spreadsheetId: GOOGLE_SHEETS_ID,
-        range: 'users!A:G',
+        range: 'users!A:H',
         valueInputOption: 'RAW',
         insertDataOption: 'INSERT_ROWS',
         resource: {
-          values: [[telegramId, telegramUsername, telegramName, telegramIsPremium, new Date().toISOString(), '', '']],
+          values: [[telegramId, telegramUsername, telegramName, telegramIsPremium, new Date().toISOString(), '', '', 0]],
         },
       });
       console.log(`[GSheets] New user added: ${telegramId} (@${telegramUsername})`);
@@ -196,6 +207,47 @@ async function googleUpdateScore(userId, score, time) {
     }
   } catch (err) {
     console.error('[GSheets] Error updating score:', err.message);
+    return false;
+  }
+}
+
+// ─── Increment play attempts counter (column H) for a user ─────────────────
+async function googleIncrementAttempts(userId) {
+  const sheets = await getSheetsClient();
+  if (!sheets) return false;
+
+  const telegramId = String(userId);
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: GOOGLE_SHEETS_ID,
+      range: 'users!A:H',
+    });
+
+    const rows = response.data.values || [];
+    const existingRowIndex = rows.findIndex(row => row[0] == telegramId);
+
+    if (existingRowIndex === -1) {
+      console.warn(`[GSheets] User ${telegramId} not found for attempts increment`);
+      return false;
+    }
+
+    const rowNumber = existingRowIndex + 1;
+    const currentAttempts = parseInt(rows[existingRowIndex][7]) || 0;
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: GOOGLE_SHEETS_ID,
+      range: `users!H${rowNumber}`,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [[currentAttempts + 1]],
+      },
+    });
+
+    console.log(`[GSheets] Attempts incremented for ${telegramId}: ${currentAttempts + 1}`);
+    return true;
+  } catch (err) {
+    console.error('[GSheets] Error incrementing attempts:', err.message);
     return false;
   }
 }
@@ -284,6 +336,7 @@ async function googleHealthCheck() {
 module.exports = {
   googleAddUser,
   googleUpdateScore,
+  googleIncrementAttempts,
   googleGetLeaderboard,
   googleHealthCheck,
 };

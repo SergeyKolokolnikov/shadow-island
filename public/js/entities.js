@@ -103,6 +103,26 @@ class Player {
         }
       }
     }
+
+    // Pick up star items (easter egg bonus)
+    if (game.starPickups) {
+      for (let i = game.starPickups.length - 1; i >= 0; i--) {
+        const s = game.starPickups[i];
+        if (s.collected) continue;
+        const dist = Math.hypot(
+          (this.x + this.w / 2) - (s.x + s.w / 2),
+          (this.y + this.h / 2) - (s.y + s.h / 2)
+        );
+        if (dist < 24) {
+          s.collected = true;
+          this.score += s.points;
+          // Gold sparkle explosion
+          Particles.explode(s.x + s.w / 2, s.y + s.h / 2, '#ffd700', 15);
+          Particles.explode(s.x + s.w / 2, s.y + s.h / 2, '#ffff88', 10);
+          game.starPickups.splice(i, 1);
+        }
+      }
+    }
   }
 
   performKick(game, dirX, dirY) {
@@ -158,6 +178,19 @@ class Player {
         }
       }
     }
+
+    // Check hits on destructible desks (easter eggs)
+    if (game.desks) {
+      for (const d of game.desks) {
+        if (d.destroyed) continue;
+        const dx2 = d.x + d.w / 2;
+        const dy2 = d.y + d.h / 2;
+        const dist = Math.hypot(cx - dx2, cy - dy2);
+        if (dist < this.attackRange + 18) {
+          d.takeDamage(this.attackDamage, game);
+        }
+      }
+    }
   }
 
   draw(ctx) {
@@ -201,6 +234,166 @@ class Player {
 
       ctx.lineWidth = 1;
       ctx.lineCap = 'butt';
+    }
+  }
+}
+
+// ── Star Pickup (dropped by destructible desks — easter egg) ──────────────
+class StarPickup {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 16;
+    this.h = 16;
+    this.points = 250;
+    this.timer = 0;
+    this.collected = false;
+  }
+
+  update(dt) {
+    this.timer += dt;
+  }
+
+  draw(ctx) {
+    if (this.collected) return;
+    const bob = Math.sin(this.timer * 5) * 3;
+    const cx = this.x + this.w / 2;
+    const cy = this.y + this.h / 2 + bob;
+
+    // Glow
+    ctx.fillStyle = `rgba(255, 215, 0, ${0.15 + Math.sin(this.timer * 6) * 0.08})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Star shape
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const angle = -Math.PI / 2 + (Math.PI * 2 * i) / 5;
+      const r = 7;
+      ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+      const innerAngle = angle + Math.PI / 5;
+      const ir = 3;
+      ctx.lineTo(cx + Math.cos(innerAngle) * ir, cy + Math.sin(innerAngle) * ir);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Bright center
+    ctx.fillStyle = '#fff8dc';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sparkle effect
+    if (Math.sin(this.timer * 8) > 0.7) {
+      ctx.fillStyle = 'rgba(255, 255, 200, 0.8)';
+      ctx.fillRect(cx - 1, cy - 6 + bob, 2, 4);
+      ctx.fillRect(cx - 1, cy + 3 + bob, 2, 4);
+      ctx.fillRect(cx - 6, cy - 1 + bob, 4, 2);
+      ctx.fillRect(cx + 3, cy - 1 + bob, 4, 2);
+    }
+  }
+}
+
+// ── Destructible Desk (easter egg — drops stars) ──────────────────────────
+class DestructibleDesk {
+  constructor(x, y, style) {
+    this.x = x;
+    this.y = y;
+    this.w = 36;
+    this.h = 24;
+    this.hp = 3;
+    this.maxHp = 3;
+    this.destroyed = false;
+    this.flashTimer = 0;
+    this.style = style || 'trump'; // 'trump' or 'biden'
+  }
+
+  takeDamage(amount, game) {
+    if (this.destroyed) return;
+    this.hp -= amount;
+    this.flashTimer = 0.1;
+    Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
+    if (this.hp <= 0) {
+      this.destroyed = true;
+      const cx = this.x + this.w / 2;
+      const cy = this.y + this.h / 2;
+      // Explosion
+      const color = this.style === 'trump' ? '#aa8822' : '#cc2222';
+      Particles.explode(cx, cy, color, 12);
+      Particles.explode(cx, cy, '#ffffcc', 8);
+      // Drop star pickup
+      if (!game.starPickups) game.starPickups = [];
+      game.starPickups.push(new StarPickup(this.x + 10, this.y));
+      game.player.score += 50;
+    }
+  }
+
+  draw(ctx) {
+    if (this.destroyed) {
+      // Debris
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(this.x + 4, this.y + 8, 14, 10);
+      ctx.fillRect(this.x + 20, this.y + 6, 12, 12);
+      return;
+    }
+
+    if (this.flashTimer > 0) ctx.globalAlpha = 0.5;
+
+    if (this.style === 'trump') {
+      // Trump's desk — mahogany with gold trim
+      ctx.fillStyle = '#5a3020';
+      ctx.fillRect(this.x, this.y, this.w, this.h);
+      ctx.fillStyle = '#6a4030';
+      ctx.fillRect(this.x + 2, this.y + 2, this.w - 4, this.h - 4);
+      // Gold trim
+      ctx.fillStyle = '#ccaa44';
+      ctx.fillRect(this.x, this.y, this.w, 2);
+      ctx.fillRect(this.x, this.y, 2, this.h);
+      ctx.fillRect(this.x + this.w - 2, this.y, 2, this.h);
+      // Nameplate
+      ctx.fillStyle = '#ccaa44';
+      ctx.fillRect(this.x + 10, this.y + 8, 16, 8);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(this.x + 11, this.y + 9, 14, 6);
+      // Papers
+      ctx.fillStyle = '#eeeeee';
+      ctx.fillRect(this.x + 4, this.y + 4, 5, 6);
+      ctx.fillRect(this.x + 28, this.y + 5, 5, 7);
+    } else {
+      // Biden's podium desk — walnut with presidential seal
+      ctx.fillStyle = '#4a3828';
+      ctx.fillRect(this.x, this.y, this.w, this.h);
+      ctx.fillStyle = '#5a4838';
+      ctx.fillRect(this.x + 2, this.y + 2, this.w - 4, this.h - 4);
+      // Presidential seal (mini)
+      ctx.fillStyle = '#ccaa44';
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2244aa';
+      ctx.beginPath();
+      ctx.arc(this.x + this.w / 2, this.y + this.h / 2, 4, 0, Math.PI * 2);
+      ctx.fill();
+      // Microphone
+      ctx.fillStyle = '#888';
+      ctx.fillRect(this.x + 6, this.y + 2, 2, 10);
+      ctx.fillStyle = '#aaa';
+      ctx.fillRect(this.x + 5, this.y + 1, 4, 3);
+    }
+
+    ctx.globalAlpha = 1;
+
+    // HP bar
+    if (this.hp < this.maxHp) {
+      const barW = 28;
+      const barH = 3;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(this.x + 4, this.y - 6, barW, barH);
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(this.x + 4, this.y - 6, barW * (this.hp / this.maxHp), barH);
     }
   }
 }

@@ -52,6 +52,19 @@ const TG = {
     }
   },
 
+  // Track play attempt (increment counter in Google Sheets)
+  async trackPlay() {
+    try {
+      await fetch('/play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: this.user.id }),
+      });
+    } catch (e) {
+      console.error('Failed to track play:', e);
+    }
+  },
+
   // Send score to backend
   async submitScore(score, time) {
     try {

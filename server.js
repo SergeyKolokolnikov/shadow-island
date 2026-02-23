@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
-const { googleAddUser, googleUpdateScore, googleGetLeaderboard, googleHealthCheck } = require('./google-sheets');
+const { googleAddUser, googleUpdateScore, googleIncrementAttempts, googleGetLeaderboard, googleHealthCheck } = require('./google-sheets');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,6 +50,19 @@ app.post('/register', async (req, res) => {
 
   // Save to Google Sheets (async, non-blocking for the game)
   googleAddUser(user).catch(err => console.error('[Register] GSheets error:', err));
+
+  res.json({ success: true });
+});
+
+// ─── POST /play — increment play attempts counter ────────────────────────────
+app.post('/play', async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing userId' });
+  }
+
+  googleIncrementAttempts(userId).catch(err => console.error('[Play] GSheets error:', err));
 
   res.json({ success: true });
 });
