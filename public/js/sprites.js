@@ -603,6 +603,104 @@ const Sprites = {
     });
   },
 
+  // ── Maduro sprite (Venezuelan president — easter egg NPC) ────────────────
+  maduro() {
+    return this.create(40, 40, (ctx) => {
+      const B = '#111';
+      const W = '#ffffff';
+      const SKIN = '#c49060';     // tan/olive skin
+      const SKIN_DK = '#a07048';
+      const HAIR = '#1a1a1a';     // black hair
+      const MUSTACHE = '#1a1a1a';
+      const SUIT = '#cc2222';     // red jacket (socialist chic)
+      const SUIT_DK = '#aa1818';
+      const PANTS = '#2a2a3a';
+
+      // Legs
+      ctx.fillStyle = PANTS;
+      ctx.fillRect(11, 34, 7, 6);
+      ctx.fillRect(22, 34, 7, 6);
+      // Shoes
+      ctx.fillStyle = B;
+      ctx.fillRect(10, 38, 8, 2);
+      ctx.fillRect(21, 38, 8, 2);
+
+      // Body — red jacket
+      ctx.fillStyle = SUIT;
+      ctx.fillRect(6, 16, 28, 20);
+      ctx.fillStyle = SUIT_DK;
+      ctx.fillRect(6, 16, 3, 20);
+      ctx.fillRect(31, 16, 3, 20);
+      // Gold buttons
+      ctx.fillStyle = '#ccaa44';
+      ctx.fillRect(18, 20, 2, 2);
+      ctx.fillRect(18, 25, 2, 2);
+      ctx.fillRect(18, 30, 2, 2);
+
+      // Arms (reaching out for clapping)
+      ctx.fillStyle = SUIT;
+      ctx.fillRect(1, 18, 6, 10);
+      ctx.fillRect(33, 18, 6, 10);
+      // Hands
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(0, 26, 6, 5);
+      ctx.fillRect(34, 26, 6, 5);
+
+      // Neck
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(16, 14, 8, 4);
+
+      // Head — round, wider
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(10, 2, 20, 14);
+      ctx.fillRect(12, 1, 16, 16);
+
+      // Hair — black, combed back, thick
+      ctx.fillStyle = HAIR;
+      ctx.fillRect(10, 0, 20, 5);
+      ctx.fillRect(8, 1, 24, 4);
+      ctx.fillRect(8, 2, 3, 6);
+      ctx.fillRect(29, 2, 3, 6);
+
+      // Ears
+      ctx.fillStyle = SKIN;
+      ctx.fillRect(8, 7, 3, 5);
+      ctx.fillRect(29, 7, 3, 5);
+
+      // Eyebrows — thick, dark
+      ctx.fillStyle = HAIR;
+      ctx.fillRect(13, 6, 5, 2);
+      ctx.fillRect(22, 6, 5, 2);
+
+      // Eyes — small, dark
+      ctx.fillStyle = W;
+      ctx.fillRect(14, 8, 4, 3);
+      ctx.fillRect(22, 8, 4, 3);
+      ctx.fillStyle = '#2a1a0a';
+      ctx.fillRect(16, 9, 2, 2);
+      ctx.fillRect(24, 9, 2, 2);
+      ctx.fillStyle = B;
+      ctx.fillRect(16, 9, 1, 1);
+      ctx.fillRect(24, 9, 1, 1);
+
+      // Nose — wide, prominent
+      ctx.fillStyle = SKIN_DK;
+      ctx.fillRect(18, 9, 4, 4);
+      ctx.fillRect(17, 12, 6, 2);
+
+      // Mustache — signature thick mustache
+      ctx.fillStyle = MUSTACHE;
+      ctx.fillRect(14, 13, 12, 2);
+      ctx.fillRect(15, 12, 10, 1);
+
+      // Mouth — wide grin
+      ctx.fillStyle = '#884040';
+      ctx.fillRect(16, 15, 8, 1);
+      ctx.fillStyle = W;
+      ctx.fillRect(17, 15, 6, 1);
+    });
+  },
+
   // ── Projectile ───────────────────────────────────────────────────────────
   projectile() {
     return this.create(8, 8, (ctx) => {

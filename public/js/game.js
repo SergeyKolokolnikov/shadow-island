@@ -18,6 +18,7 @@ class Game {
     this.pickups = [];
     this.desks = [];
     this.starPickups = [];
+    this.npcs = [];
 
     // Level
     this.currentLevelIndex = 0;
@@ -107,6 +108,7 @@ class Game {
     // Easter egg desks
     this.desks = level.createDesks ? level.createDesks() : [];
     this.starPickups = [];
+    this.npcs = [];
 
     // Pickups
     this.pickups = [];
@@ -222,6 +224,12 @@ class Game {
       s.update(dt);
     }
 
+    // NPCs (easter egg characters like Maduro)
+    for (let i = this.npcs.length - 1; i >= 0; i--) {
+      this.npcs[i].update(dt, this);
+      if (!this.npcs[i].alive) this.npcs.splice(i, 1);
+    }
+
     // Countdown
     if (this.countdown > 0) {
       this.countdown -= dt;
@@ -250,13 +258,14 @@ class Game {
       }
     }
 
-    // Hacking terminal proximity check (mansion)
+    // Hacking terminal — trigger on kick near terminal (not just proximity)
     if (this.currentLevel === Levels.mansion && !this.hackingDone && !this.hackingTriggered) {
       const t = Levels.mansion.hackingTerminal;
       const px = this.player.x + this.player.w / 2;
       const py = this.player.y + this.player.h / 2;
       const dist = Math.hypot(px - (t.x + t.w / 2), py - (t.y + t.h / 2));
-      if (dist < 40) {
+      // Show hint when close, trigger on kick
+      if (dist < 40 && this.player.kickTimer > 0) {
         this.hackingTriggered = true;
         UI.startHacking();
       }
@@ -271,7 +280,11 @@ class Game {
     this.camX = Math.max(0, Math.min(this.mapWidth - this.viewW, this.camX));
     this.camY = Math.max(0, Math.min(this.mapHeight - this.viewH, this.camY));
 
-    // Check player death
+    // Check player death — wait for death animation to finish
+    if (this.player.dying) {
+      // Still animating — update player for death anim, skip everything else
+      return;
+    }
     if (!this.player.alive) {
       this.gameOver();
       return;
@@ -324,6 +337,11 @@ class Game {
     // Star pickups
     for (const s of this.starPickups) {
       s.draw(ctx);
+    }
+
+    // NPCs (easter egg)
+    for (const n of this.npcs) {
+      n.draw(ctx);
     }
 
     // Enemies

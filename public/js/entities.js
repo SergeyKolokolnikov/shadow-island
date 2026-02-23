@@ -11,7 +11,9 @@ class Player {
     this.hp = 5;
     this.maxHp = 5;
     this.alive = true;
-    this.invulnTime = 0;   // invulnerability frames
+    this.dying = false;       // death animation state
+    this.deathAnim = 0;       // death animation timer
+    this.invulnTime = 0;      // invulnerability frames
     this.attackCooldown = 0;
     this.attackRange = 36;
     this.attackDamage = 1;
@@ -25,14 +27,15 @@ class Player {
   }
 
   takeDamage(amount) {
-    if (this.invulnTime > 0) return;
+    if (this.invulnTime > 0 || this.dying) return;
     this.hp -= amount;
     this.invulnTime = 0.8;
     this.flashTimer = 0.8;
     Particles.sparks(this.x + this.w / 2, this.y + this.h / 2);
     if (this.hp <= 0) {
       this.hp = 0;
-      this.alive = false;
+      this.dying = true;
+      this.deathAnim = 2.5; // 2.5 second death animation
       Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ff3333', 20);
     }
   }
@@ -42,7 +45,53 @@ class Player {
   }
 
   update(dt, game) {
-    if (!this.alive) return;
+    if (!this.alive && !this.dying) return;
+
+    // Death animation
+    if (this.dying) {
+      this.deathAnim -= dt;
+      const cx = this.x + this.w / 2;
+      const cy = this.y + this.h / 2;
+
+      // Phase 1 (2.5 → 1.5): player stumbles, sparks fly
+      if (this.deathAnim > 1.5) {
+        this.x += Math.sin(this.deathAnim * 8) * 1.5;
+        if (Math.random() < 0.3) {
+          Particles.sparks(
+            cx + (Math.random() - 0.5) * 20,
+            cy + (Math.random() - 0.5) * 20
+          );
+        }
+      }
+      // Phase 2 (1.5 → 0.6): falls to knees, equipment scatters
+      if (this.deathAnim <= 1.5 && this.deathAnim > 0.6) {
+        if (Math.random() < 0.25) {
+          const angle = Math.random() * Math.PI * 2;
+          Particles.list.push({
+            x: cx, y: cy,
+            vx: Math.cos(angle) * (30 + Math.random() * 50),
+            vy: Math.sin(angle) * (30 + Math.random() * 50) - 15,
+            life: 0.8 + Math.random() * 0.5,
+            maxLife: 1.2,
+            size: 2 + Math.random() * 3,
+            color: ['#445566', '#33ff88', '#ddbb88', '#222'][Math.floor(Math.random() * 4)],
+          });
+        }
+      }
+      // Phase 3 (0.6 → 0): final collapse, red flash
+      if (this.deathAnim <= 0.6 && !this._deathFinalBlast) {
+        this._deathFinalBlast = true;
+        Particles.explode(cx, cy, '#ff3333', 20);
+        Particles.explode(cx, cy, '#ff6600', 15);
+        Particles.explode(cx, cy, '#ffcc00', 10);
+      }
+
+      if (this.deathAnim <= 0) {
+        this.alive = false;
+        this.dying = false;
+      }
+      return;
+    }
 
     this.invulnTime = Math.max(0, this.invulnTime - dt);
     this.flashTimer = Math.max(0, this.flashTimer - dt);
@@ -194,7 +243,71 @@ class Player {
   }
 
   draw(ctx) {
-    if (!this.alive) return;
+    if (!this.alive && !this.dying) return;
+
+    // Death animation rendering
+    if (this.dying) {
+      const cx = this.x + this.w / 2;
+      const cy = this.y + this.h / 2;
+      const progress = 1 - (this.deathAnim / 2.5);
+
+      // Red vignette flash
+      if (this.deathAnim > 1.5) {
+        ctx.fillStyle = `rgba(255, 0, 0, ${0.15 * Math.sin(this.deathAnim * 6)})`;
+        ctx.fillRect(this.x - 40, this.y - 40, this.w + 80, this.h + 80);
+      }
+
+      // Shaking sprite
+      const shake = (Math.random() - 0.5) * (6 + progress * 8);
+      const alpha = Math.max(0.15, this.deathAnim / 2.5);
+      ctx.globalAlpha = alpha;
+
+      // Tilting as falling
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(progress * 0.8); // tilt to one side
+      ctx.scale(1 - progress * 0.3, 1 + progress * 0.1); // squish
+      ctx.drawImage(Sprites.player(), -this.w / 2 - 2 + shake, -this.h / 2 - 2);
+      ctx.restore();
+
+      ctx.globalAlpha = 1;
+
+      // "MISSION FAILED" text during final phase
+      if (this.deathAnim <= 1.0 && this.deathAnim > 0) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        const cw = ctx.canvas.width;
+        const ch = ctx.canvas.height;
+
+        // Dark overlay growing
+        const overlayAlpha = Math.min(0.7, (1.0 - this.deathAnim) * 1.5);
+        ctx.fillStyle = `rgba(0, 0, 0, ${overlayAlpha})`;
+        ctx.fillRect(0, 0, cw, ch);
+
+        // Text
+        const textAlpha = Math.min(1, (1.0 - this.deathAnim) * 2);
+        ctx.globalAlpha = textAlpha;
+
+        // Skull icon
+        ctx.fillStyle = '#ff3333';
+        ctx.font = 'bold 28px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText('💀', cw / 2, ch / 2 - 20);
+
+        ctx.fillStyle = '#ff4444';
+        ctx.font = 'bold 18px Courier New';
+        ctx.fillText('AGENT DOWN', cw / 2, ch / 2 + 10);
+
+        ctx.fillStyle = '#888';
+        ctx.font = '11px Courier New';
+        ctx.fillText('Mission failed...', cw / 2, ch / 2 + 30);
+
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+
+      return;
+    }
 
     // Invulnerability blink
     if (this.invulnTime > 0 && Math.floor(this.invulnTime * 10) % 2) return;
@@ -328,6 +441,9 @@ class DestructibleDesk {
       if (!game.starPickups) game.starPickups = [];
       game.starPickups.push(new StarPickup(this.x + 10, this.y));
       game.player.score += 50;
+      // Spawn Maduro NPC from the desk!
+      if (!game.npcs) game.npcs = [];
+      game.npcs.push(new MaduroNPC(this.x, this.y - 20));
     }
   }
 
@@ -394,6 +510,133 @@ class DestructibleDesk {
       ctx.fillRect(this.x + 4, this.y - 6, barW, barH);
       ctx.fillStyle = '#ffd700';
       ctx.fillRect(this.x + 4, this.y - 6, barW * (this.hp / this.maxHp), barH);
+    }
+  }
+}
+
+// ── Maduro NPC (spawns from broken desk, claps, gives bonus points) ───────
+class MaduroNPC {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.w = 28;
+    this.h = 28;
+    this.timer = 0;
+    this.lifetime = 4.0;     // stays for 4 seconds
+    this.alive = true;
+    this.bonusGiven = false;
+    this.bonusPoints = 500;
+    this.clapTimer = 0;
+    this.clapFrame = 0;      // 0 or 1 for clap animation
+    this.moveDir = Math.random() > 0.5 ? 1 : -1;
+    this.floatTextTimer = 0;
+    this.sparkleTimer = 0;
+  }
+
+  update(dt, game) {
+    if (!this.alive) return;
+    this.timer += dt;
+    this.clapTimer += dt;
+    this.sparkleTimer += dt;
+
+    // Clap animation toggle
+    if (this.clapTimer > 0.25) {
+      this.clapTimer = 0;
+      this.clapFrame = 1 - this.clapFrame;
+      // Clap sparkles
+      Particles.list.push({
+        x: this.x + this.w / 2,
+        y: this.y + 4,
+        vx: (Math.random() - 0.5) * 30,
+        vy: -20 - Math.random() * 20,
+        life: 0.4,
+        maxLife: 0.5,
+        size: 2,
+        color: '#ffd700',
+      });
+    }
+
+    // Slight walking motion
+    this.x += this.moveDir * 15 * dt;
+    if (this.x < 30 || this.x > game.mapWidth - 60) this.moveDir *= -1;
+
+    // Give bonus when player approaches
+    if (!this.bonusGiven && game.player.alive) {
+      const dist = Math.hypot(
+        (game.player.x + game.player.w / 2) - (this.x + this.w / 2),
+        (game.player.y + game.player.h / 2) - (this.y + this.h / 2)
+      );
+      if (dist < 50) {
+        this.bonusGiven = true;
+        game.player.score += this.bonusPoints;
+        this.floatTextTimer = 1.5;
+        // Big celebration
+        Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ffd700', 20);
+        Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#ff4444', 15);
+      }
+    }
+
+    // Float text countdown
+    if (this.floatTextTimer > 0) this.floatTextTimer -= dt;
+
+    // Disappear after lifetime
+    if (this.timer > this.lifetime) {
+      this.alive = false;
+      Particles.explode(this.x + this.w / 2, this.y + this.h / 2, '#cc2222', 10);
+    }
+  }
+
+  draw(ctx) {
+    if (!this.alive) return;
+
+    const cx = this.x + this.w / 2;
+    const cy = this.y + this.h / 2;
+
+    // Glow aura
+    ctx.fillStyle = `rgba(255, 215, 0, ${0.08 + Math.sin(this.timer * 4) * 0.04})`;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Maduro sprite
+    const bob = Math.sin(this.timer * 3) * 1;
+    ctx.save();
+    // Clap frame — slight scale pulse
+    if (this.clapFrame) {
+      ctx.translate(cx, cy + bob);
+      ctx.scale(1.05, 0.95);
+      ctx.translate(-cx, -(cy + bob));
+    }
+    ctx.drawImage(Sprites.maduro(), this.x - 6, this.y - 6 + bob);
+    ctx.restore();
+
+    // "👏" text above head
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 10px Courier New';
+    ctx.textAlign = 'center';
+    const clapText = this.clapFrame ? '👏' : '👐';
+    ctx.fillText(clapText, cx, this.y - 8 + bob);
+
+    // Bonus text floating up
+    if (this.floatTextTimer > 0) {
+      const alpha = Math.min(1, this.floatTextTimer);
+      const floatY = this.y - 20 - (1.5 - this.floatTextTimer) * 30;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#ffd700';
+      ctx.font = 'bold 14px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText(`+${this.bonusPoints}`, cx, floatY);
+      ctx.globalAlpha = 1;
+    }
+
+    // Name label
+    if (this.timer < 2.5) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(cx - 24, this.y + this.h + 2 + bob, 48, 12);
+      ctx.fillStyle = '#ffd700';
+      ctx.font = '8px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('MADURO', cx, this.y + this.h + 11 + bob);
     }
   }
 }
