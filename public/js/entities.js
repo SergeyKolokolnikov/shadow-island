@@ -422,6 +422,7 @@ class DestructibleDesk {
     this.destroyed = false;
     this.flashTimer = 0;
     this.style = style || 'trump'; // 'trump' or 'biden'
+    this.spawnMaduro = false;      // set to true for the easter egg desk
   }
 
   takeDamage(amount, game) {
@@ -441,9 +442,11 @@ class DestructibleDesk {
       if (!game.starPickups) game.starPickups = [];
       game.starPickups.push(new StarPickup(this.x + 10, this.y));
       game.player.score += 50;
-      // Spawn Maduro NPC from the desk!
-      if (!game.npcs) game.npcs = [];
-      game.npcs.push(new MaduroNPC(this.x, this.y - 20));
+      // Spawn Maduro NPC only from the special desk
+      if (this.spawnMaduro) {
+        if (!game.npcs) game.npcs = [];
+        game.npcs.push(new MaduroNPC(this.x, this.y - 20));
+      }
     }
   }
 

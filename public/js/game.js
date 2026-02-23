@@ -39,10 +39,6 @@ class Game {
     this.onGameOver = null;
     this.onVictory = null;
 
-    // Hacking state for mansion level
-    this.hackingTriggered = false;
-    this.hackingDone = false;
-
     this.resize();
   }
 
@@ -117,13 +113,6 @@ class Game {
     this.countdown = level.countdown || 0;
     this.wavesSpawned = {};
 
-    // Hacking
-    this.hackingTriggered = false;
-    this.hackingDone = false;
-    if (level === Levels.mansion) {
-      level.hackingComplete = false;
-    }
-
     Particles.clear();
   }
 
@@ -146,7 +135,7 @@ class Game {
     const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05); // Cap delta
     this.lastTime = timestamp;
 
-    if (!UI.transition.active && !UI.hacking.active) {
+    if (!UI.transition.active) {
       this.update(dt);
     }
 
@@ -155,22 +144,6 @@ class Game {
       const done = UI.updateTransition(dt);
       if (done) {
         // Transition complete — continue gameplay
-      }
-    }
-
-    // Update hacking mini-game
-    if (UI.hacking.active) {
-      UI.updateHacking(dt);
-      if (UI.hacking.success) {
-        this.hackingDone = true;
-        if (this.currentLevel === Levels.mansion) {
-          Levels.mansion.hackingComplete = true;
-        }
-        this.player.score += 500;
-      } else if (UI.hacking.failed) {
-        // Take damage on fail, can retry
-        this.player.takeDamage(1);
-        this.hackingTriggered = false;
       }
     }
 
@@ -258,18 +231,6 @@ class Game {
       }
     }
 
-    // Hacking terminal — trigger on kick near terminal (not just proximity)
-    if (this.currentLevel === Levels.mansion && !this.hackingDone && !this.hackingTriggered) {
-      const t = Levels.mansion.hackingTerminal;
-      const px = this.player.x + this.player.w / 2;
-      const py = this.player.y + this.player.h / 2;
-      const dist = Math.hypot(px - (t.x + t.w / 2), py - (t.y + t.h / 2));
-      // Show hint when close, trigger on kick
-      if (dist < 40 && this.player.kickTimer > 0) {
-        this.hackingTriggered = true;
-        UI.startHacking();
-      }
-    }
 
     // Particles
     Particles.update(dt);
@@ -369,9 +330,6 @@ class Game {
 
     // HUD (screen-space)
     UI.drawHUD(ctx, this);
-
-    // Hacking overlay
-    UI.drawHacking(ctx);
 
     // Transition overlay
     UI.drawTransition(ctx);

@@ -138,9 +138,6 @@ const Levels = {
       { x1: 330, y1: 500, x2: 330, y2: 620, speed: 2.2 },
     ],
 
-    hackingTerminal: { x: 220, y: 50, w: 40, h: 30 },
-    hackingComplete: false,
-
     createEnemies() {
       return [
         new Guard(100, 500, [{ x: 100, y: 500 }, { x: 100, y: 600 }]),
@@ -154,10 +151,9 @@ const Levels = {
     },
 
     createDesks() {
-      return [
-        new DestructibleDesk(60, 610, 'trump'),    // below left furniture
-        new DestructibleDesk(360, 610, 'trump'),   // below right furniture
-      ];
+      const desk = new DestructibleDesk(275, 48, 'trump');
+      desk.spawnMaduro = true; // Only this desk spawns Maduro!
+      return [desk];
     },
 
     createLasers() {
@@ -185,18 +181,6 @@ const Levels = {
       ctx.fillStyle = '#5a2222';
       ctx.fillRect(215, 200, 50, 500);
 
-      // Hacking terminal
-      if (!this.hackingComplete) {
-        const t = this.hackingTerminal;
-        ctx.fillStyle = '#334455';
-        ctx.fillRect(t.x, t.y, t.w, t.h);
-        ctx.fillStyle = '#22aa44';
-        ctx.fillRect(t.x + 4, t.y + 4, t.w - 8, t.h - 12);
-        ctx.fillStyle = '#fff';
-        ctx.font = '8px Courier New';
-        ctx.textAlign = 'center';
-        ctx.fillText('HACK', t.x + t.w / 2, t.y + t.h + 12);
-      }
     },
 
     drawWalls(ctx) {
