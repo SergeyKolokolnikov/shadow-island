@@ -151,9 +151,9 @@ const Levels = {
     },
 
     createDesks() {
-      const desk = new DestructibleDesk(275, 48, 'trump');
-      desk.spawnMaduro = true; // Only this desk spawns Maduro!
-      return [desk];
+      const cage = new DestructibleDesk(215, 270, 'cage');
+      cage.spawnMaduro = true;
+      return [cage];
     },
 
     createLasers() {

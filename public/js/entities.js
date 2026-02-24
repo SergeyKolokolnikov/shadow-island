@@ -415,13 +415,13 @@ class DestructibleDesk {
   constructor(x, y, style) {
     this.x = x;
     this.y = y;
-    this.w = 36;
-    this.h = 24;
-    this.hp = 3;
-    this.maxHp = 3;
+    this.w = style === 'cage' ? 40 : 36;
+    this.h = style === 'cage' ? 40 : 24;
+    this.hp = style === 'cage' ? 4 : 3;
+    this.maxHp = this.hp;
     this.destroyed = false;
     this.flashTimer = 0;
-    this.style = style || 'trump'; // 'trump' or 'biden'
+    this.style = style || 'trump'; // 'trump', 'biden', or 'cage'
     this.spawnMaduro = false;      // set to true for the easter egg desk
   }
 
@@ -435,7 +435,7 @@ class DestructibleDesk {
       const cx = this.x + this.w / 2;
       const cy = this.y + this.h / 2;
       // Explosion
-      const color = this.style === 'trump' ? '#aa8822' : '#cc2222';
+      const color = this.style === 'cage' ? '#555555' : this.style === 'trump' ? '#aa8822' : '#cc2222';
       Particles.explode(cx, cy, color, 12);
       Particles.explode(cx, cy, '#ffffcc', 8);
       // Drop star pickup
@@ -453,15 +453,72 @@ class DestructibleDesk {
   draw(ctx) {
     if (this.destroyed) {
       // Debris
-      ctx.fillStyle = '#3a2a1a';
-      ctx.fillRect(this.x + 4, this.y + 8, 14, 10);
-      ctx.fillRect(this.x + 20, this.y + 6, 12, 12);
+      if (this.style === 'cage') {
+        // Bent bars and broken lock
+        ctx.fillStyle = '#444';
+        ctx.fillRect(this.x + 4, this.y + 10, 2, 16);
+        ctx.fillRect(this.x + 14, this.y + 8, 2, 20);
+        ctx.fillRect(this.x + 24, this.y + 12, 2, 14);
+        ctx.fillRect(this.x + 34, this.y + 6, 2, 18);
+        ctx.fillStyle = '#882222';
+        ctx.fillRect(this.x + 8, this.y + 20, 10, 3);
+        ctx.fillStyle = '#aa8822';
+        ctx.fillRect(this.x + 16, this.y + 28, 4, 4);
+      } else {
+        ctx.fillStyle = '#3a2a1a';
+        ctx.fillRect(this.x + 4, this.y + 8, 14, 10);
+        ctx.fillRect(this.x + 20, this.y + 6, 12, 12);
+      }
       return;
     }
 
     if (this.flashTimer > 0) ctx.globalAlpha = 0.5;
 
-    if (this.style === 'trump') {
+    if (this.style === 'cage') {
+      // BDSM cage — black iron bars, padlock, red leather accents
+      const x = this.x, y = this.y, w = this.w, h = this.h;
+      // Base platform — dark metal
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+      // Red leather lining (visible inside)
+      ctx.fillStyle = '#551111';
+      ctx.fillRect(x + 4, y + 4, w - 8, h - 8);
+      ctx.fillStyle = '#661818';
+      ctx.fillRect(x + 6, y + 6, w - 12, h - 12);
+      // Vertical bars
+      ctx.fillStyle = '#444';
+      for (let bx = x + 4; bx < x + w - 2; bx += 5) {
+        ctx.fillRect(bx, y, 2, h);
+      }
+      // Horizontal bars (top, middle, bottom)
+      ctx.fillStyle = '#444';
+      ctx.fillRect(x, y, w, 2);
+      ctx.fillRect(x, y + Math.floor(h / 2) - 1, w, 2);
+      ctx.fillRect(x, y + h - 2, w, 2);
+      // Corner rivets — silver dots
+      ctx.fillStyle = '#999';
+      const rv = 2;
+      ctx.fillRect(x + 1, y + 1, rv, rv);
+      ctx.fillRect(x + w - 3, y + 1, rv, rv);
+      ctx.fillRect(x + 1, y + h - 3, rv, rv);
+      ctx.fillRect(x + w - 3, y + h - 3, rv, rv);
+      // Padlock — gold lock on front center
+      ctx.fillStyle = '#aa8822';
+      ctx.fillRect(x + w / 2 - 3, y + h - 8, 6, 6);
+      ctx.fillStyle = '#ccaa44';
+      ctx.fillRect(x + w / 2 - 2, y + h - 12, 4, 5);
+      // Keyhole
+      ctx.fillStyle = '#222';
+      ctx.fillRect(x + w / 2 - 1, y + h - 6, 2, 2);
+      // Red X straps (leather cross on top)
+      ctx.fillStyle = '#882222';
+      for (let i = 0; i < Math.min(w, h) - 8; i += 2) {
+        ctx.fillRect(x + 4 + i, y + 4 + i * (h - 8) / (w - 8), 2, 2);
+        ctx.fillRect(x + w - 6 - i, y + 4 + i * (h - 8) / (w - 8), 2, 2);
+      }
+    } else if (this.style === 'trump') {
       // Trump's desk — mahogany with gold trim
       ctx.fillStyle = '#5a3020';
       ctx.fillRect(this.x, this.y, this.w, this.h);
