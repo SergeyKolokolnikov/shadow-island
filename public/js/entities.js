@@ -689,15 +689,6 @@ class MaduroNPC {
       ctx.globalAlpha = 1;
     }
 
-    // Name label
-    if (this.timer < 2.5) {
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(cx - 24, this.y + this.h + 2 + bob, 48, 12);
-      ctx.fillStyle = '#ffd700';
-      ctx.font = '8px Courier New';
-      ctx.textAlign = 'center';
-      ctx.fillText('MADURO', cx, this.y + this.h + 11 + bob);
-    }
   }
 }
 
