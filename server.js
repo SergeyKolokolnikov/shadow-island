@@ -4,9 +4,12 @@ const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
 const { googleAddUser, googleUpdateScore, googleIncrementAttempts, googleGetLeaderboard, googleHealthCheck } = require('./google-sheets');
 
+const { Bot: MaxBot, Keyboard: MaxKeyboard } = require('@maxhub/max-bot-api');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
+const MAX_BOT_TOKEN = process.env.MAX_BOT_TOKEN || '';
 const APP_URL = process.env.APP_URL || ''; // e.g. https://shadow-island-production.up.railway.app
 
 // In-memory score storage (fallback if Google Sheets not configured)
@@ -255,10 +258,140 @@ if (BOT_TOKEN) {
   console.log('Telegram bot started (polling mode)');
 }
 
+// ─── Max Messenger Bot (любое сообщение → приветствие + лидерборд) ──────────
+if (MAX_BOT_TOKEN) {
+  const maxBot = new MaxBot(MAX_BOT_TOKEN);
+
+  // Helper — build Russian leaderboard + greeting for Max
+  async function buildMaxMessage(firstName) {
+    let leaderboard = await googleGetLeaderboard(10, 'max');
+    if (leaderboard === null) {
+      leaderboard = [...scores.values()]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+    }
+
+    const medals = ['🥇', '🥈', '🥉'];
+    const nums = ['4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+    let lbText = '';
+
+    if (leaderboard.length > 0) {
+      const maxScore = leaderboard[0].score || 1;
+      lbText = '🏆 **ЛУЧШИЕ АГЕНТЫ**\n\n';
+
+      lbText += leaderboard.map((e, i) => {
+        const medal = i < 3 ? medals[i] : (nums[i - 3] || `${i + 1}.`);
+        let timeStr = '';
+        if (typeof e.time === 'string' && e.time.length > 0) {
+          timeStr = `(${e.time})`;
+        } else if (typeof e.time === 'number' && e.time > 0) {
+          const mins = Math.floor(e.time / 60);
+          const secs = Math.floor(e.time % 60);
+          timeStr = `(${mins}:${secs.toString().padStart(2, '0')})`;
+        }
+        const name = e.username || 'Агент';
+        if (i < 3) {
+          return `${medal} **${name}** **${e.score}** ${timeStr}`;
+        }
+        return `${medal} ${name} ${e.score} ${timeStr}`;
+      }).join('\n');
+
+      lbText += '\n\n';
+    } else {
+      lbText = '🏆 **ЛУЧШИЕ АГЕНТЫ**\n🕳 _Пока нет результатов. Стань первым агентом, выполнившим миссию!_\n\n';
+    }
+
+    const text = `👋 Привет, **${firstName}**!\n\n` +
+      `**Операция: Тёмный Остров**\n\n` +
+      `Проникни на остров, сражайся с охраной и победи злодея!\n\n` +
+      lbText;
+
+    return text;
+  }
+
+  // Handle /start command
+  maxBot.command('start', async (ctx) => {
+    const firstName = (ctx.message && ctx.message.sender && ctx.message.sender.name) || 'Агент';
+
+    // Register user
+    if (ctx.message && ctx.message.sender) {
+      const sender = ctx.message.sender;
+      googleAddUser({
+        id: 'max_' + sender.userId,
+        username: sender.username || sender.name || '',
+        firstName: sender.name || '',
+        isPremium: false,
+      }, 'max').catch(err => console.error('[Max Bot Register] GSheets error:', err));
+    }
+
+    const text = await buildMaxMessage(firstName);
+
+    if (APP_URL) {
+      const keyboard = MaxKeyboard.inlineKeyboard([
+        [MaxKeyboard.button.link('🕹 ИГРАТЬ', APP_URL + '?lang=ru')],
+      ]);
+      await ctx.reply(text, { attachments: [keyboard], format: 'markdown' });
+    } else {
+      await ctx.reply(text, { format: 'markdown' });
+    }
+  });
+
+  // Handle bot_started event (when user opens bot for the first time)
+  maxBot.on('bot_started', async (ctx) => {
+    const firstName = (ctx.message && ctx.message.sender && ctx.message.sender.name) || 'Агент';
+
+    if (ctx.message && ctx.message.sender) {
+      const sender = ctx.message.sender;
+      googleAddUser({
+        id: 'max_' + sender.userId,
+        username: sender.username || sender.name || '',
+        firstName: sender.name || '',
+        isPremium: false,
+      }, 'max').catch(err => console.error('[Max Bot Register] GSheets error:', err));
+    }
+
+    const text = await buildMaxMessage(firstName);
+
+    if (APP_URL) {
+      const keyboard = MaxKeyboard.inlineKeyboard([
+        [MaxKeyboard.button.link('🕹 ИГРАТЬ', APP_URL + '?lang=ru')],
+      ]);
+      await ctx.reply(text, { attachments: [keyboard], format: 'markdown' });
+    } else {
+      await ctx.reply(text, { format: 'markdown' });
+    }
+  });
+
+  // Handle ANY other message — same response
+  maxBot.on('message_created', async (ctx) => {
+    const firstName = (ctx.message && ctx.message.sender && ctx.message.sender.name) || 'Агент';
+
+    const text = await buildMaxMessage(firstName);
+
+    if (APP_URL) {
+      const keyboard = MaxKeyboard.inlineKeyboard([
+        [MaxKeyboard.button.link('🕹 ИГРАТЬ', APP_URL + '?lang=ru')],
+      ]);
+      await ctx.reply(text, { attachments: [keyboard], format: 'markdown' });
+    } else {
+      await ctx.reply(text, { format: 'markdown' });
+    }
+  });
+
+  maxBot.start().then(() => {
+    console.log('Max bot started (polling mode)');
+  }).catch(err => {
+    console.error('Max bot failed to start:', err.message);
+  });
+}
+
 app.listen(PORT, () => {
   console.log(`Shadow Island server running on port ${PORT}`);
   if (!BOT_TOKEN) {
     console.log('WARNING: BOT_TOKEN not set — Telegram validation disabled (dev mode)');
+  }
+  if (!MAX_BOT_TOKEN) {
+    console.log('WARNING: MAX_BOT_TOKEN not set — Max bot disabled');
   }
   if (!process.env.GOOGLE_SHEETS_ID || !process.env.GOOGLE_CREDS_BASE64) {
     console.log('WARNING: GOOGLE_SHEETS_ID or GOOGLE_CREDS_BASE64 not set — using in-memory leaderboard');
