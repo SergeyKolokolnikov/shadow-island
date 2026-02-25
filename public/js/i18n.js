@@ -98,7 +98,7 @@ const I18n = {
     },
   },
 
-  // Detect language: ?lang=ru param > Telegram WebApp = en > default ru
+  // Detect language: ?lang=ru param > Telegram WebApp = en > Max WebApp = ru > default ru
   detect() {
     const params = new URLSearchParams(window.location.search);
     const langParam = params.get('lang');
@@ -108,8 +108,11 @@ const I18n = {
     } else if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
       // Launched from Telegram — English
       this.lang = 'en';
+    } else if (window.WebApp && window.WebApp.initData) {
+      // Launched from Max — Russian
+      this.lang = 'ru';
     } else {
-      // Default (Max or direct browser) — Russian
+      // Default (direct browser) — Russian
       this.lang = 'ru';
     }
 

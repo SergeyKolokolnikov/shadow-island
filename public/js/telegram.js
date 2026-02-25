@@ -1,14 +1,13 @@
-// ─── Telegram WebApp Integration ─────────────────────────────────────────────
+// ─── Platform Integration (Telegram + Max) ──────────────────────────────────
 const TG = {
   user: null,
   initData: '',
-  platform: 'max', // default; overridden if Telegram detected
+  platform: 'max', // default; overridden if Telegram/Max detected
 
   init() {
-    // Detect platform
-    this.platform = I18n.getPlatform();
-
-    if (window.Telegram && window.Telegram.WebApp) {
+    // 1. Try Telegram WebApp
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+      this.platform = 'telegram';
       const webapp = window.Telegram.WebApp;
       webapp.ready();
       webapp.expand();
@@ -26,17 +25,45 @@ const TG = {
       }
     }
 
-    // Fallback for development / Max messenger (no Telegram WebApp)
+    // 2. Try Max WebApp (window.WebApp from max-web-app.js)
+    if (!this.user && window.WebApp && window.WebApp.initData) {
+      this.platform = 'max';
+      const webapp = window.WebApp;
+      webapp.ready();
+
+      this.initData = webapp.initData || '';
+
+      const u = webapp.initDataUnsafe && webapp.initDataUnsafe.user;
+      if (u) {
+        this.user = {
+          id: 'max_' + u.id,
+          username: u.username || u.first_name || 'Агент',
+          firstName: u.first_name || '',
+          isPremium: false,
+        };
+      }
+    }
+
+    // 3. Fallback — persistent anonymous user via localStorage
     if (!this.user) {
+      this.platform = I18n.lang === 'ru' ? 'max' : 'telegram';
+      let savedId = null;
+      try { savedId = localStorage.getItem('shadow_island_user_id'); } catch (e) {}
+
+      if (!savedId) {
+        savedId = 'anon_' + Date.now() + '_' + Math.floor(Math.random() * 9999);
+        try { localStorage.setItem('shadow_island_user_id', savedId); } catch (e) {}
+      }
+
       this.user = {
-        id: 'max_' + Math.floor(Math.random() * 99999),
-        username: 'MaxAgent',
+        id: savedId,
+        username: 'Agent',
         firstName: 'Agent',
         isPremium: false,
       };
     }
 
-    console.log('[TG] Platform:', this.platform, '| User:', this.user.id);
+    console.log('[TG] Platform:', this.platform, '| User:', this.user.id, '| Name:', this.user.username);
 
     // Register user in Google Sheets (fire and forget)
     this.registerUser();
