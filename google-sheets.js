@@ -70,7 +70,7 @@ async function ensureUsersSheet(sheets) {
     // Check if headers exist
     const headerRes = await sheets.spreadsheets.values.get({
       spreadsheetId: GOOGLE_SHEETS_ID,
-      range: 'users!A1:H1',
+      range: 'users!A1:I1',
     });
 
     const headerRow = (headerRes.data.values && headerRes.data.values[0]) || [];
@@ -79,24 +79,35 @@ async function ensureUsersSheet(sheets) {
       // Write headers
       await sheets.spreadsheets.values.update({
         spreadsheetId: GOOGLE_SHEETS_ID,
-        range: 'users!A1:H1',
+        range: 'users!A1:I1',
         valueInputOption: 'RAW',
         requestBody: {
-          values: [['Telegram Id', 'Telegram Username', 'Telegram Name', 'Telegram Is Premium', 'Created', 'Score Points', 'Score Time', 'Play Attempts']],
+          values: [['Telegram Id', 'Telegram Username', 'Telegram Name', 'Telegram Is Premium', 'Created', 'Score Points', 'Score Time', 'Play Attempts', 'Platform']],
         },
       });
       console.log('[GSheets] Headers written to "users" sheet');
-    } else if (headerRow.length < 8 || headerRow[7] !== 'Play Attempts') {
-      // Add missing H column header
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: GOOGLE_SHEETS_ID,
-        range: 'users!H1',
-        valueInputOption: 'RAW',
-        requestBody: {
-          values: [['Play Attempts']],
-        },
-      });
-      console.log('[GSheets] Added "Play Attempts" header to column H');
+    } else if (headerRow.length < 9 || headerRow[8] !== 'Platform') {
+      // Add missing columns
+      if (headerRow.length < 8 || headerRow[7] !== 'Play Attempts') {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: GOOGLE_SHEETS_ID,
+          range: 'users!H1:I1',
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [['Play Attempts', 'Platform']],
+          },
+        });
+      } else {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: GOOGLE_SHEETS_ID,
+          range: 'users!I1',
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [['Platform']],
+          },
+        });
+      }
+      console.log('[GSheets] Added "Platform" header to column I');
     }
   } catch (err) {
     console.error('[GSheets] Error ensuring users sheet:', err.message);
@@ -105,7 +116,7 @@ async function ensureUsersSheet(sheets) {
 
 // ─── Add new user to "users" sheet ──────────────────────────────────────────
 // Columns: Telegram Id | Telegram Username | Telegram Name | Telegram Is Premium | Created | Score Points | Score Time
-async function googleAddUser(user) {
+async function googleAddUser(user, platform) {
   const sheets = await getSheetsClient();
   if (!sheets) return false;
 
@@ -113,12 +124,13 @@ async function googleAddUser(user) {
   const telegramUsername = user.username || '';
   const telegramName = user.firstName || '';
   const telegramIsPremium = user.isPremium || false;
+  const userPlatform = platform || 'telegram';
 
   try {
     // Check if user already exists
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: GOOGLE_SHEETS_ID,
-      range: 'users!A:H',
+      range: 'users!A:I',
     });
 
     const rows = response.data.values || [];
@@ -128,17 +140,17 @@ async function googleAddUser(user) {
       // New user — append row (Score Points, Score Time, Play Attempts start at 0)
       await sheets.spreadsheets.values.append({
         spreadsheetId: GOOGLE_SHEETS_ID,
-        range: 'users!A:H',
+        range: 'users!A:I',
         valueInputOption: 'RAW',
         insertDataOption: 'INSERT_ROWS',
         resource: {
-          values: [[telegramId, telegramUsername, telegramName, telegramIsPremium, new Date().toISOString(), '', '', 0]],
+          values: [[telegramId, telegramUsername, telegramName, telegramIsPremium, new Date().toISOString(), '', '', 0, userPlatform]],
         },
       });
-      console.log(`[GSheets] New user added: ${telegramId} (@${telegramUsername})`);
+      console.log(`[GSheets] New user added: ${telegramId} (@${telegramUsername}) [${userPlatform}]`);
       return true;
     } else {
-      // User exists — update username/name in case they changed
+      // User exists — update username/name/platform in case they changed
       const rowNumber = existingRowIndex + 1; // 1-based
       await sheets.spreadsheets.values.update({
         spreadsheetId: GOOGLE_SHEETS_ID,
@@ -148,7 +160,16 @@ async function googleAddUser(user) {
           values: [[telegramUsername, telegramName, telegramIsPremium]],
         },
       });
-      console.log(`[GSheets] User updated: ${telegramId} (@${telegramUsername})`);
+      // Update platform
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: GOOGLE_SHEETS_ID,
+        range: `users!I${rowNumber}`,
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [[userPlatform]],
+        },
+      });
+      console.log(`[GSheets] User updated: ${telegramId} (@${telegramUsername}) [${userPlatform}]`);
       return true;
     }
   } catch (err) {
@@ -254,14 +275,14 @@ async function googleIncrementAttempts(userId) {
 
 // ─── Get leaderboard from Google Sheets ────────────────────────────────────
 // Returns top players sorted by Score Points descending
-async function googleGetLeaderboard(limit = 50) {
+async function googleGetLeaderboard(limit = 50, platform = null) {
   const sheets = await getSheetsClient();
   if (!sheets) return null; // null means GSheets not configured, use in-memory
 
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: GOOGLE_SHEETS_ID,
-      range: 'users!A:G',
+      range: 'users!A:I',
     });
 
     const rows = response.data.values || [];
@@ -271,15 +292,19 @@ async function googleGetLeaderboard(limit = 50) {
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const scoreVal = parseFloat(row[5]) || 0;
-      if (scoreVal > 0) {
-        leaderboard.push({
-          userId: row[0],
-          username: row[1] || row[2] || 'Agent',
-          score: scoreVal,
-          time: row[6] || '',
-          timeRaw: 0, // We store formatted time, so parse back for sorting
-        });
-      }
+      if (scoreVal <= 0) continue;
+
+      // Filter by platform if specified
+      const rowPlatform = (row[8] || 'telegram').toLowerCase();
+      if (platform && rowPlatform !== platform.toLowerCase()) continue;
+
+      leaderboard.push({
+        userId: row[0],
+        username: row[1] || row[2] || 'Agent',
+        score: scoreVal,
+        time: row[6] || '',
+        timeRaw: 0,
+      });
     }
 
     // Sort by score descending

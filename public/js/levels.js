@@ -5,7 +5,7 @@ const Levels = {
 
   // ── LEVEL 1: Beach Landing ─────────────────────────────────────────────
   beach: {
-    name: 'BEACH LANDING',
+    get name() { return I18n.t('level_beach'); },
     mapWidth: 480,
     mapHeight: 700,
     playerStart: { x: 220, y: 650 },
@@ -105,7 +105,7 @@ const Levels = {
 
   // ── LEVEL 2: Mansion ───────────────────────────────────────────────────
   mansion: {
-    name: 'THE MANSION',
+    get name() { return I18n.t('level_mansion'); },
     mapWidth: 480,
     mapHeight: 700,
     playerStart: { x: 220, y: 650 },
@@ -203,7 +203,7 @@ const Levels = {
 
   // ── LEVEL 3: Underground Server Room ───────────────────────────────────
   serverRoom: {
-    name: 'SERVER ROOM',
+    get name() { return I18n.t('level_server'); },
     mapWidth: 480,
     mapHeight: 700,
     playerStart: { x: 220, y: 600 },
@@ -317,7 +317,7 @@ const Levels = {
 
   // ── LEVEL 4: Villa Ballroom ─────────────────────────────────────────────
   villa: {
-    name: 'THE VILLA',
+    get name() { return I18n.t('level_villa'); },
     mapWidth: 520,
     mapHeight: 750,
     playerStart: { x: 250, y: 700 },
@@ -489,7 +489,7 @@ const Levels = {
 
   // ── FINAL BOSS ARENA ───────────────────────────────────────────────────
   bossArena: {
-    name: 'DR. VORTEX',
+    get name() { return I18n.t('level_boss'); },
     mapWidth: 480,
     mapHeight: 700,
     playerStart: { x: 220, y: 600 },

@@ -52,7 +52,7 @@ const UI = {
     // Score
     ctx.fillStyle = '#00ff88';
     ctx.textAlign = 'left';
-    ctx.fillText('SCORE: ' + game.player.score, 10, 68);
+    ctx.fillText(I18n.t('score_label') + game.player.score, 10, 68);
 
     // Timer (if applicable)
     if (game.countdown > 0) {
@@ -227,7 +227,7 @@ const UI = {
 
       ctx.fillStyle = '#888';
       ctx.font = '12px Courier New';
-      ctx.fillText('Prepare yourself...', cw / 2, ch / 2 + 20);
+      ctx.fillText(I18n.t('prepare'), cw / 2, ch / 2 + 20);
     }
 
     ctx.globalAlpha = 1;

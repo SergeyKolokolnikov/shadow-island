@@ -2,8 +2,12 @@
 const TG = {
   user: null,
   initData: '',
+  platform: 'max', // default; overridden if Telegram detected
 
   init() {
+    // Detect platform
+    this.platform = I18n.getPlatform();
+
     if (window.Telegram && window.Telegram.WebApp) {
       const webapp = window.Telegram.WebApp;
       webapp.ready();
@@ -22,15 +26,17 @@ const TG = {
       }
     }
 
-    // Fallback for development outside Telegram
+    // Fallback for development / Max messenger (no Telegram WebApp)
     if (!this.user) {
       this.user = {
-        id: 'dev_' + Math.floor(Math.random() * 99999),
-        username: 'DevAgent',
-        firstName: 'Dev',
+        id: 'max_' + Math.floor(Math.random() * 99999),
+        username: 'MaxAgent',
+        firstName: 'Agent',
         isPremium: false,
       };
     }
+
+    console.log('[TG] Platform:', this.platform, '| User:', this.user.id);
 
     // Register user in Google Sheets (fire and forget)
     this.registerUser();
@@ -45,6 +51,7 @@ const TG = {
         body: JSON.stringify({
           initData: this.initData,
           user: this.user,
+          platform: this.platform,
         }),
       });
     } catch (e) {
@@ -77,6 +84,7 @@ const TG = {
           username: this.user.username,
           score,
           time,
+          platform: this.platform,
         }),
       });
       return await res.json();
@@ -86,10 +94,10 @@ const TG = {
     }
   },
 
-  // Fetch leaderboard
+  // Fetch leaderboard (filtered by platform)
   async getLeaderboard() {
     try {
-      const res = await fetch('/leaderboard');
+      const res = await fetch(`/leaderboard?platform=${this.platform}`);
       const data = await res.json();
       return data.leaderboard || [];
     } catch (e) {

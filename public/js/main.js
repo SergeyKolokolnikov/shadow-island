@@ -27,6 +27,10 @@
 
   // ── Initialize ───────────────────────────────────────────────────────
   function init() {
+    // Detect language first (before anything else)
+    I18n.detect();
+    I18n.applyToDOM();
+
     TG.init();
     Input.init();
 
@@ -78,8 +82,8 @@
     game.onVictory = async (score, time) => {
       const mins = Math.floor(time / 60);
       const secs = Math.floor(time % 60);
-      victoryScore.textContent = 'Score: ' + score;
-      victoryTime.textContent = `Time: ${mins}:${secs.toString().padStart(2, '0')}`;
+      victoryScore.textContent = I18n.t('score_prefix') + score;
+      victoryTime.textContent = `${I18n.t('time_prefix')}${mins}:${secs.toString().padStart(2, '0')}`;
 
       // Submit score to backend
       await TG.submitScore(score, time);
@@ -93,12 +97,12 @@
   // ── Leaderboard ──────────────────────────────────────────────────────
   async function showLeaderboard() {
     showScreen('leaderboard');
-    leaderboardList.innerHTML = '<p style="color:#666;text-align:center">Loading...</p>';
+    leaderboardList.innerHTML = `<p style="color:#666;text-align:center">${I18n.t('loading')}</p>`;
 
     const entries = await TG.getLeaderboard();
 
     if (entries.length === 0) {
-      leaderboardList.innerHTML = '<p style="color:#666;text-align:center">No scores yet. Be the first!</p>';
+      leaderboardList.innerHTML = `<p style="color:#666;text-align:center">${I18n.t('no_scores')}</p>`;
       return;
     }
 

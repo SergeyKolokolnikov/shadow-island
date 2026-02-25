@@ -12,12 +12,12 @@
     <!-- Title Screen -->
     <div id="title-screen" class="screen">
       <div class="title-content">
-        <h1 class="game-title">OPERATION</h1>
-        <h2 class="game-subtitle">SHADOW ISLAND</h2>
+        <h1 class="game-title" data-i18n="title_operation">OPERATION</h1>
+        <h2 class="game-subtitle" data-i18n="title_shadow_island">SHADOW ISLAND</h2>
         <div class="pixel-divider"></div>
-        <p class="tagline">Infiltrate. Eliminate. Escape.</p>
-        <button id="btn-start" class="pixel-btn">START MISSION</button>
-        <button id="btn-leaderboard" class="pixel-btn secondary">LEADERBOARD</button>
+        <p class="tagline" data-i18n="title_tagline">Infiltrate. Eliminate. Escape.</p>
+        <button id="btn-start" class="pixel-btn" data-i18n="btn_start">START MISSION</button>
+        <button id="btn-leaderboard" class="pixel-btn secondary" data-i18n="btn_leaderboard">LEADERBOARD</button>
       </div>
     </div>
 
@@ -34,7 +34,7 @@
       <div id="kick-zone">
         <div id="kick-base">
           <div id="kick-thumb"></div>
-          <span id="kick-label">KICK</span>
+          <span id="kick-label" data-i18n="kick_label">KICK</span>
         </div>
       </div>
     </div>
@@ -42,35 +42,36 @@
     <!-- Game Over Screen -->
     <div id="gameover-screen" class="screen hidden">
       <div class="screen-content">
-        <h2 class="screen-title red">MISSION FAILED</h2>
-        <p id="gameover-text">You were eliminated.</p>
-        <button id="btn-retry" class="pixel-btn">RETRY</button>
-        <button id="btn-menu" class="pixel-btn secondary">MENU</button>
+        <h2 class="screen-title red" data-i18n="mission_failed">MISSION FAILED</h2>
+        <p id="gameover-text" data-i18n="you_were_eliminated">You were eliminated.</p>
+        <button id="btn-retry" class="pixel-btn" data-i18n="btn_retry">RETRY</button>
+        <button id="btn-menu" class="pixel-btn secondary" data-i18n="btn_menu">MENU</button>
       </div>
     </div>
 
     <!-- Victory Screen -->
     <div id="victory-screen" class="screen hidden">
       <div class="screen-content">
-        <h2 class="screen-title green">MISSION COMPLETE</h2>
+        <h2 class="screen-title green" data-i18n="mission_complete">MISSION COMPLETE</h2>
         <p id="victory-score">Score: 0</p>
         <p id="victory-time">Time: 00:00</p>
-        <button id="btn-leaderboard2" class="pixel-btn">LEADERBOARD</button>
-        <button id="btn-menu2" class="pixel-btn secondary">MENU</button>
+        <button id="btn-leaderboard2" class="pixel-btn" data-i18n="btn_leaderboard">LEADERBOARD</button>
+        <button id="btn-menu2" class="pixel-btn secondary" data-i18n="btn_menu">MENU</button>
       </div>
     </div>
 
     <!-- Leaderboard Modal -->
     <div id="leaderboard-modal" class="screen hidden">
       <div class="screen-content wide">
-        <h2 class="screen-title">TOP AGENTS</h2>
+        <h2 class="screen-title" data-i18n="top_agents">TOP AGENTS</h2>
         <div id="leaderboard-list"></div>
-        <button id="btn-close-lb" class="pixel-btn secondary">CLOSE</button>
+        <button id="btn-close-lb" class="pixel-btn secondary" data-i18n="btn_close">CLOSE</button>
       </div>
     </div>
   </div>
 
   <!-- Game Scripts -->
+  <script src="js/i18n.js"></script>
   <script src="js/telegram.js"></script>
   <script src="js/sprites.js"></script>
   <script src="js/input.js"></script>

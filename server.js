@@ -37,7 +37,7 @@ function validateTelegramData(initData) {
 
 // ─── POST /register — register user in Google Sheets on game start ──────────
 app.post('/register', async (req, res) => {
-  const { initData, user } = req.body;
+  const { initData, user, platform } = req.body;
 
   if (!user || !user.id) {
     return res.status(400).json({ error: 'Missing user data' });
@@ -49,7 +49,7 @@ app.post('/register', async (req, res) => {
   }
 
   // Save to Google Sheets (async, non-blocking for the game)
-  googleAddUser(user).catch(err => console.error('[Register] GSheets error:', err));
+  googleAddUser(user, platform || 'telegram').catch(err => console.error('[Register] GSheets error:', err));
 
   res.json({ success: true });
 });
@@ -101,14 +101,16 @@ app.post('/score', async (req, res) => {
 
 // ─── GET /leaderboard — top 50 players ───────────────────────────────────────
 app.get('/leaderboard', async (req, res) => {
+  const platform = req.query.platform || null; // 'telegram' or 'max'
+
   // Try Google Sheets first
-  const gsLeaderboard = await googleGetLeaderboard(50);
+  const gsLeaderboard = await googleGetLeaderboard(50, platform);
 
   if (gsLeaderboard !== null) {
     // Google Sheets is configured and returned data
     res.json({ leaderboard: gsLeaderboard });
   } else {
-    // Fallback to in-memory
+    // Fallback to in-memory (no platform filter for in-memory)
     const leaderboard = [...scores.values()]
       .sort((a, b) => b.score - a.score)
       .slice(0, 50);
@@ -165,10 +167,10 @@ if (BOT_TOKEN) {
       username: msg.from.username || '',
       firstName: `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim(),
       isPremium: msg.from.is_premium || false,
-    }).catch(err => console.error('[Bot Register] GSheets error:', err));
+    }, 'telegram').catch(err => console.error('[Bot Register] GSheets error:', err));
 
-    // Build leaderboard text — prefer Google Sheets
-    let leaderboard = await googleGetLeaderboard(10);
+    // Build leaderboard text — prefer Google Sheets (telegram users only)
+    let leaderboard = await googleGetLeaderboard(10, 'telegram');
     if (leaderboard === null) {
       // Fallback to in-memory
       leaderboard = [...scores.values()]

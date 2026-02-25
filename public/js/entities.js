@@ -296,11 +296,11 @@ class Player {
 
         ctx.fillStyle = '#ff4444';
         ctx.font = 'bold 18px Courier New';
-        ctx.fillText('AGENT DOWN', cw / 2, ch / 2 + 10);
+        ctx.fillText(I18n.t('agent_down'), cw / 2, ch / 2 + 10);
 
         ctx.fillStyle = '#888';
         ctx.font = '11px Courier New';
-        ctx.fillText('Mission failed...', cw / 2, ch / 2 + 30);
+        ctx.fillText(I18n.t('mission_failed_dots'), cw / 2, ch / 2 + 30);
 
         ctx.globalAlpha = 1;
         ctx.restore();
@@ -1894,7 +1894,7 @@ class FinalBoss {
       ctx.fillStyle = '#fff';
       ctx.font = '10px Courier New';
       ctx.textAlign = 'center';
-      ctx.fillText('THE ISLAND KEEPER', bx2 + barW2 / 2, by2 - 3);
+      ctx.fillText(I18n.t('boss_island_keeper'), bx2 + barW2 / 2, by2 - 3);
       ctx.restore();
       return;
     }
@@ -1936,7 +1936,7 @@ class FinalBoss {
     ctx.fillStyle = '#fff';
     ctx.font = '10px Courier New';
     ctx.textAlign = 'center';
-    ctx.fillText('THE ISLAND KEEPER', bx + barW / 2, by - 3);
+    ctx.fillText(I18n.t('boss_island_keeper'), bx + barW / 2, by - 3);
     ctx.restore();
   }
 }
